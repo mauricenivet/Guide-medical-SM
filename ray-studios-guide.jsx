@@ -1,9 +1,15 @@
 import { useState, useMemo } from "react";
-import { Search, X, ChevronRight, RotateCcw, Check, BookOpen, Target, ArrowRight, Stethoscope, AlertTriangle, Calculator, Lightbulb, AlertOctagon, Quote, Copy, Ban, Atom } from "lucide-react";
+import { Search, X, ChevronRight, RotateCcw, Check, BookOpen, Target, ArrowRight, Stethoscope, AlertTriangle, Calculator, Lightbulb, AlertOctagon, Quote, Copy, Ban, Atom, MessageCircle } from "lucide-react";
 
 // ============================================================
 // DONNÉES. Modifie librement le contenu ici
 // ============================================================
+
+// ===== CONFIGURATION FEEDBACK =====
+// Colle ici ton identifiant de formulaire Formspree (ex: "xdorwtab" ou l'URL complète).
+// Tu l'obtiens sur formspree.io après avoir créé un formulaire.
+// Tant que ce champ est vide, l'onglet Feedback affiche un message d'attente.
+const FORMSPREE_ID = "xojgjbow";
 
 const RAY_ORANGE = "#ED9B5F";
 const RAY_ORANGE_SOFT = "#F8E4D2";
@@ -967,11 +973,13 @@ const GLOSSARY = [
   {
     term: "Assombrissement paradoxal",
     techDef: "Phénomène où le tatouage devient temporairement plus foncé après une séance, sur certains pigments (encres rouges, blanches, beiges contenant des oxydes métalliques).",
+    mechanism: "Sous l'effet du laser, les oxydes métalliques de ces encres (fer, titane) se réduisent chimiquement et changent d'état, ce qui les fait virer au gris ou au noir. C'est réversible : les séances suivantes, avec la bonne longueur d'onde, fragmentent ensuite ce pigment assombri.",
     patientWords: "Ça peut arriver sur certaines encres, c'est connu et réversible. Le médecin adaptera la longueur d'onde aux séances suivantes.",
   },
   {
     term: "Chéloïde",
     techDef: "Cicatrice anormalement épaisse, surélevée et qui déborde de la plaie d'origine. Prédisposition génétique.",
+    mechanism: "Lors de la cicatrisation, les cellules qui produisent le collagène (fibroblastes) s'emballent et en fabriquent en excès. Chez les personnes prédisposées, la cicatrice déborde alors au-delà de la plaie initiale au lieu de s'arrêter à ses bords.",
     patientWords: "Une cicatrice particulière qui peut se former chez certaines personnes prédisposées. Le médecin vérifie en consultation initiale.",
   },
   {
@@ -1007,6 +1015,7 @@ const GLOSSARY = [
   {
     term: "Érythème",
     techDef: "Rougeur de la peau, réaction inflammatoire normale après une séance laser.",
+    mechanism: "L'énergie du laser provoque une micro-inflammation locale. Le corps y répond en dilatant les petits vaisseaux sanguins pour amener plus de sang vers la zone, ce qui la fait rougir. Cela s'estompe en quelques heures à quelques jours.",
     patientWords: "La rougeur qui apparaît après la séance. C'est normal et ça passe en quelques jours.",
   },
   {
@@ -1017,16 +1026,19 @@ const GLOSSARY = [
   {
     term: "Givrage",
     techDef: "Blanchiment instantané de la zone pendant le tir, dû à un micro-dégagement de gaz. Repère clinique d'une fluence adaptée. Disparaît en quelques minutes.",
+    mechanism: "L'onde de choc du laser vaporise en un instant une infime quantité d'eau et de gaz dans la peau. Ces micro-bulles remontent en surface et diffusent la lumière, d'où ce blanchiment passager, le temps que le gaz se résorbe.",
     patientWords: "Le petit blanchiment qu'on voit pendant le tir, c'est bon signe : ça veut dire que le laser agit bien.",
   },
   {
     term: "Hyperpigmentation",
     techDef: "Assombrissement de la peau post-inflammatoire. Plus fréquent sur phototypes III à VI, lié au soleil ou à des fluences excessives.",
+    mechanism: "En réaction à l'inflammation du laser, les cellules pigmentaires (mélanocytes) se mettent à produire trop de mélanine. Le soleil amplifie ce phénomène, d'où l'importance d'une protection SPF 50 entre les séances, surtout sur peaux mates.",
     patientWords: "Une zone qui devient plus foncée après cicatrisation. Souvent transitoire (quelques semaines à mois). La protection solaire est essentielle.",
   },
   {
     term: "Hypopigmentation",
     techDef: "Éclaircissement de la peau par perte de mélanine. Peut être irréversible. Plus fréquent sur 532 nm et en cas de refroidissement excessif.",
+    mechanism: "À l'inverse, une énergie trop forte ou un froid excessif peut endommager les mélanocytes, les cellules qui fabriquent le pigment de la peau. Privées de ces cellules, la zone reste plus claire, parfois durablement.",
     patientWords: "Une zone plus claire que la peau normale. Peut prendre 3 à 6 mois à se repigmenter.",
   },
   {
@@ -1037,6 +1049,7 @@ const GLOSSARY = [
   {
     term: "Macrophage",
     techDef: "Cellule du système immunitaire qui phagocyte les pigments fragmentés par le laser et les évacue via les voies lymphatiques.",
+    mechanism: "Le tatouage tient justement parce que les particules d'encre d'origine sont trop grosses : les macrophages restent coincés avec. Une fois le laser passé, les fragments sont assez petits pour être capturés puis emmenés vers les ganglions, où le corps les élimine.",
     patientWords: "Les cellules qui « nettoient » votre peau et évacuent les pigments cassés par le laser. C'est pourquoi il faut 6-8 semaines entre deux séances.",
   },
   {
@@ -1047,11 +1060,13 @@ const GLOSSARY = [
   {
     term: "Œdème",
     techDef: "Gonflement localisé dû à l'accumulation de liquide, réaction inflammatoire fréquente et transitoire après une séance.",
+    mechanism: "L'inflammation rend les petits vaisseaux temporairement plus perméables. Du liquide s'échappe alors dans les tissus voisins et les fait gonfler. Le froid appliqué en séance limite cette réaction, qui disparaît en quelques jours.",
     patientWords: "Un petit gonflement après la séance, c'est normal et ça part en quelques jours.",
   },
   {
     term: "Phlyctène",
     techDef: "Cloque, bulle de liquide sous l'épiderme. Apparition possible dans les 24-48h post-séance.",
+    mechanism: "Quand la chaleur résiduelle décolle légèrement la couche superficielle de la peau (épiderme) de la couche en dessous, du liquide s'accumule dans l'espace créé et forme une bulle. Il ne faut jamais la percer, pour éviter l'infection.",
     patientWords: "Une cloque. Surtout ne pas la percer. Si elle apparaît, on prévient le médecin.",
   },
   {
@@ -2494,7 +2509,7 @@ function ReflexesMode() {
     const q = glossQuery.trim().toLowerCase();
     if (!q) return GLOSSARY;
     return GLOSSARY.filter((g) =>
-      (g.term + " " + g.techDef + " " + g.patientWords).toLowerCase().includes(q)
+      (g.term + " " + g.techDef + " " + (g.mechanism || "") + " " + g.patientWords).toLowerCase().includes(q)
     );
   }, [glossQuery]);
 
@@ -2574,6 +2589,14 @@ function ReflexesMode() {
                   </div>
                   <div className="text-sm text-stone-700 leading-relaxed">{g.techDef}</div>
                 </div>
+                {g.mechanism && (
+                  <div className="mt-3 pt-3 border-t border-dashed border-stone-200">
+                    <div className="text-[10px] uppercase tracking-widest text-stone-400 font-medium mb-1">
+                      Comment ça arrive
+                    </div>
+                    <div className="text-sm text-stone-600 leading-relaxed">{g.mechanism}</div>
+                  </div>
+                )}
                 <div className="mt-3 pt-3 border-t border-dashed border-stone-200">
                   <div className="text-[10px] uppercase tracking-widest font-medium mb-1" style={{ color: "#8B4513" }}>
                     À dire au patient
@@ -2588,6 +2611,132 @@ function ReflexesMode() {
               </div>
             )}
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// MODE : FEEDBACK (questions des utilisateurs)
+// ============================================================
+
+function FeedbackMode() {
+  const [name, setName] = useState("");
+  const [question, setQuestion] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | sending | sent | error
+
+  const configured = FORMSPREE_ID && FORMSPREE_ID.trim().length > 0;
+  const endpoint = configured
+    ? (FORMSPREE_ID.startsWith("http")
+        ? FORMSPREE_ID
+        : "https://formspree.io/f/" + FORMSPREE_ID)
+    : null;
+
+  async function submit() {
+    if (!question.trim() || status === "sending") return;
+    setStatus("sending");
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          nom: name.trim() || "Anonyme",
+          question: question.trim(),
+        }),
+      });
+      if (res.ok) {
+        setStatus("sent");
+        setName("");
+        setQuestion("");
+      } else {
+        setStatus("error");
+      }
+    } catch (e) {
+      setStatus("error");
+    }
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto px-6 pb-24">
+      <div className="mt-4 mb-6">
+        <h2 className="text-2xl font-semibold text-stone-900 mb-1">Feedback</h2>
+        <p className="text-sm text-stone-500">
+          Une question, un doute, une suggestion ? Posez-la ici, elle sera transmise à l'équipe.
+        </p>
+      </div>
+
+      {!configured ? (
+        <div className="border-l-2 rounded-r p-5 bg-white border border-stone-200" style={{ borderLeftColor: RAY_ORANGE, borderLeftWidth: "3px" }}>
+          <div className="text-sm text-stone-700 leading-relaxed">
+            Le formulaire n'est pas encore activé. La configuration finale est en cours.
+          </div>
+        </div>
+      ) : status === "sent" ? (
+        <div className="bg-white border border-stone-200 rounded-xl p-8 text-center">
+          <div
+            className="w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center"
+            style={{ backgroundColor: RAY_ORANGE_SOFT }}
+          >
+            <Check className="w-6 h-6" style={{ color: "#8B4513" }} strokeWidth={2.5} />
+          </div>
+          <div className="font-medium text-stone-900 mb-1">Question transmise</div>
+          <p className="text-sm text-stone-500 mb-6">
+            Merci, votre question a bien été envoyée à l'équipe.
+          </p>
+          <button
+            onClick={() => setStatus("idle")}
+            className="inline-flex items-center gap-2 text-stone-600 px-5 py-2.5 rounded-lg hover:bg-stone-100 transition-colors text-sm"
+          >
+            Poser une autre question
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1.5">
+              Votre nom <span className="text-stone-400 font-normal">(optionnel)</span>
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Prénom ou nom"
+              className="w-full px-4 py-3 bg-white border border-stone-200 rounded-xl text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-stone-400"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1.5">
+              Votre question
+            </label>
+            <textarea
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder="Écrivez votre question ici…"
+              rows={5}
+              className="w-full px-4 py-3 bg-white border border-stone-200 rounded-xl text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-stone-400 resize-none"
+            />
+          </div>
+
+          {status === "error" && (
+            <div className="text-sm text-red-600">
+              L'envoi a échoué. Vérifiez votre connexion et réessayez.
+            </div>
+          )}
+
+          <button
+            onClick={submit}
+            disabled={!question.trim() || status === "sending"}
+            className="w-full text-white py-4 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-40"
+            style={{ backgroundColor: "#1A1A1A" }}
+          >
+            {status === "sending" ? "Envoi en cours…" : "Envoyer ma question"}
+            {status !== "sending" && <ArrowRight className="w-4 h-4" />}
+          </button>
+
+          <p className="text-xs text-stone-400 text-center">
+            Vos questions aident à améliorer l'outil et la formation.
+          </p>
         </div>
       )}
     </div>
@@ -2633,7 +2782,18 @@ export default function App() {
               </div>
             </div>
           </div>
-          <FadeDots className="hidden sm:flex" />
+          <button
+            onClick={() => setMode("feedback")}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors flex-shrink-0 ${
+              mode === "feedback"
+                ? "text-white"
+                : "text-stone-600 hover:bg-stone-100 border border-stone-200"
+            }`}
+            style={mode === "feedback" ? { backgroundColor: "#1A1A1A" } : {}}
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span className="hidden sm:inline">Feedback</span>
+          </button>
         </div>
 
         <div className="max-w-4xl mx-auto px-6">
@@ -2670,6 +2830,7 @@ export default function App() {
         {mode === "reflex"   && <ReflexesMode />}
         {mode === "training" && <TrainingMode />}
         {mode === "calc"     && <CalcMode />}
+        {mode === "feedback" && <FeedbackMode />}
       </main>
 
       {/* Pied de page */}
