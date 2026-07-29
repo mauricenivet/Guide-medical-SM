@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, createContext, useContext } from "react";
 import { Search, X, ChevronRight, RotateCcw, Check, BookOpen, Target, ArrowRight, Stethoscope, AlertTriangle, Calculator, Lightbulb, AlertOctagon, Quote, Copy, Ban, Atom, MessageCircle } from "lucide-react";
 
 // ============================================================
@@ -14,13 +14,240 @@ const FORMSPREE_ID = "xojgjbow";
 const RAY_ORANGE = "#ED9B5F";
 const RAY_ORANGE_SOFT = "#F8E4D2";
 
+// ============================================================
+// MULTILINGUE : contexte de langue + traductions de l'interface
+// ============================================================
+// LANGS : les 3 langues proposées. Le "flag" est le libellé du sélecteur.
+const LANGS = [
+  { id: "fr", flag: "FR", label: "Français" },
+  { id: "es", flag: "ES", label: "Español" },
+  { id: "en", flag: "UK", label: "English" },
+];
+
+const LangContext = createContext("fr");
+const useLang = () => useContext(LangContext);
+
+// L : sélectionne la traduction d'un champ selon la langue.
+// Cherche field_es / field_en, retombe sur le français (field) si absent.
+function L(obj, field, lang) {
+  if (!obj) return "";
+  if (lang && lang !== "fr") {
+    const v = obj[field + "_" + lang];
+    if (v !== undefined && v !== null && v !== "") return v;
+  }
+  return obj[field];
+}
+
+// UI : toutes les chaînes de l'interface (hors contenu médical).
+// Pour ajouter/corriger une traduction, modifier la valeur correspondante.
+const UI = {
+  fr: {
+    subtitle: "Guide médical du SM",
+    tab_learn: "Comprendre", tab_themes: "Thèmes", tab_reflex: "Réflexes", tab_training: "Quiz", tab_calc: "Calcul",
+    feedback: "Feedback",
+    footer: "Ray studios · Outil interne. Ne remplace pas l'avis médical",
+    badge_doctor: "Pour le médecin", badge_urgent: "Urgent", badge_forbidden: "On ne le fait pas",
+    search_ph: "Rechercher : cloque, soleil, prix, vaseline…",
+    answers: "réponses", answer: "réponse",
+    no_answer_1a: "Aucune réponse pour « ", no_answer_1b: " ».",
+    no_answer_2: "Essayez un mot plus court ou un synonyme.",
+    go_further: "Pour aller plus loin",
+    open: "Ouvrir", all_themes: "Tous les thèmes",
+    cards: "cartes", card: "carte",
+    touch_reveal: "Touchez une carte pour révéler la réponse.",
+    see_answer: "Voir la réponse", flip_back: "Retourner",
+    clear: "Effacer",
+    quiz_title: "Quiz", choose_type: "Choisissez le type d'entraînement.",
+    scenarios_title: "Situations terrain", scenarios_desc_a: "Que répondre face à un patient ? ", scenarios_desc_b: " mises en situation.",
+    medical_title: "Connaissances médicales", medical_desc_a: "Le laser, les phototypes, les soins. ", medical_desc_b: " questions de connaissances.",
+    label_situation: "Situation", label_question: "Question",
+    what_answer: "Que répondez-vous ?", which_correct: "Quelle est la bonne réponse ?",
+    next_question: "Question suivante", see_result: "Voir le résultat",
+    pct_correct: "% de bonnes réponses",
+    res_100: "Sans-faute. Vous maîtrisez le sujet.",
+    res_70: "Très bien. Repassez les questions où vous avez hésité.",
+    res_low: "À retravailler. Un tour dans Comprendre et Thèmes aide à consolider.",
+    restart: "Recommencer", change_quiz: "Changer de quiz", score: "Score : ",
+    sub_phrases: "À ne jamais dire", sub_glossary: "Glossaire",
+    phrases_intro: "Les phrases qui peuvent mettre le SM (et Ray studios) en porte-à-faux, avec la reformulation correcte.",
+    not_say: "À ne pas dire", say_instead: "À dire à la place",
+    glossary_ph: "Chercher un terme : fluence, érythème, RTP…",
+    definition: "Définition", how_happens: "Comment ça arrive", say_patient: "À dire au patient",
+    no_term_a: "Aucun terme trouvé pour « ", no_term_b: " ».",
+    myth_label: "Idée reçue", reality_label: "La réalité",
+    phototypes_lbl: "Phototypes",
+    calc_title: "Calculatrice tatouage",
+    calc_sub: "Entrez les dimensions, la taille et le prix s'affichent automatiquement.",
+    calc_notice_head: "À utiliser uniquement pour les demandes téléphoniques",
+    calc_notice_body: "C'est le médecin qui détermine la taille du tatouage et le prix adéquat lors de la consultation initiale. Cet outil sert uniquement quand un patient demande une estimation par téléphone.",
+    length: "Longueur (cm)", width: "Largeur (cm)",
+    surface: "Surface", size: "Taille", per_session: "Par séance",
+    note_lbl: "Note : ",
+    note_body: "Si la mesure est juste au-dessus d'une tranche, c'est au médecin de décider de la taille. Le coefficient de remplissage reste subjectif. Expliquez votre méthode au patient si demandé.",
+    copy: "Copier", copied: "Copié", on_quote: "Sur devis",
+    fb_title: "Feedback", fb_sub: "Une question, un doute, une suggestion ? Posez-la ici, elle sera transmise à l'équipe.",
+    fb_not_ready: "Le formulaire n'est pas encore activé. La configuration finale est en cours.",
+    fb_sent_title: "Question transmise", fb_sent_body: "Merci, votre question a bien été envoyée à l'équipe.",
+    fb_another: "Poser une autre question",
+    fb_name: "Votre nom", fb_optional: "(optionnel)", fb_name_ph: "Prénom ou nom",
+    fb_question: "Votre question", fb_question_ph: "Écrivez votre question ici…",
+    fb_error: "L'envoi a échoué. Vérifiez votre connexion et réessayez.",
+    fb_send: "Envoyer ma question", fb_sending: "Envoi en cours…",
+    fb_help: "Vos questions aident à améliorer l'outil et la formation.",
+    tab_prices: "Prix",
+    prices_hero_title: "Full Remove : séances illimitées",
+    prices_hero_sub: "Financement 18 mois sans intérêts · -15% de réduction en Espagne",
+    prices_cta: "Prendre rendez-vous",
+    prices_per_month: "par mois",
+    prices_installments: "18 mensualités TAEG 0%",
+    prices_after_consult: "Après évaluation en consultation",
+    prices_note_label: "Ces tarifs concernent le marché espagnol (financement subventionné par RAY STUDIOS SPAIN SL).",
+  },
+  es: {
+    subtitle: "Guía médica del SM",
+    tab_learn: "Entender", tab_themes: "Temas", tab_reflex: "Reflejos", tab_training: "Quiz", tab_calc: "Cálculo",
+    feedback: "Comentarios",
+    footer: "Ray studios · Herramienta interna. No sustituye la opinión médica",
+    badge_doctor: "Para el médico", badge_urgent: "Urgente", badge_forbidden: "No lo hacemos",
+    search_ph: "Buscar: ampolla, sol, precio, vaselina…",
+    answers: "respuestas", answer: "respuesta",
+    no_answer_1a: "Ningún resultado para « ", no_answer_1b: " ».",
+    no_answer_2: "Prueba con una palabra más corta o un sinónimo.",
+    go_further: "Para saber más",
+    open: "Abrir", all_themes: "Todos los temas",
+    cards: "tarjetas", card: "tarjeta",
+    touch_reveal: "Toca una tarjeta para ver la respuesta.",
+    see_answer: "Ver la respuesta", flip_back: "Girar",
+    clear: "Borrar",
+    quiz_title: "Quiz", choose_type: "Elige el tipo de entrenamiento.",
+    scenarios_title: "Situaciones reales", scenarios_desc_a: "¿Qué responder ante un paciente? ", scenarios_desc_b: " situaciones prácticas.",
+    medical_title: "Conocimientos médicos", medical_desc_a: "El láser, los fototipos, los cuidados. ", medical_desc_b: " preguntas de conocimiento.",
+    label_situation: "Situación", label_question: "Pregunta",
+    what_answer: "¿Qué respondes?", which_correct: "¿Cuál es la respuesta correcta?",
+    next_question: "Siguiente pregunta", see_result: "Ver el resultado",
+    pct_correct: "% de respuestas correctas",
+    res_100: "Sin fallos. Dominas el tema.",
+    res_70: "Muy bien. Repasa las preguntas donde dudaste.",
+    res_low: "A repasar. Una vuelta por Entender y Temas ayuda a consolidar.",
+    restart: "Empezar de nuevo", change_quiz: "Cambiar de quiz", score: "Puntuación: ",
+    sub_phrases: "Lo que nunca hay que decir", sub_glossary: "Glosario",
+    phrases_intro: "Las frases que pueden poner al SM (y a Ray studios) en un aprieto, con la reformulación correcta.",
+    not_say: "No decir", say_instead: "Decir en su lugar",
+    glossary_ph: "Buscar un término: fluencia, eritema, RTP…",
+    definition: "Definición", how_happens: "Cómo ocurre", say_patient: "Qué decir al paciente",
+    no_term_a: "Ningún término encontrado para « ", no_term_b: " ».",
+    myth_label: "Idea equivocada", reality_label: "La realidad",
+    phototypes_lbl: "Fototipos",
+    calc_title: "Calculadora de tatuaje",
+    calc_sub: "Introduce las dimensiones, el tamaño y el precio se muestran automáticamente.",
+    calc_notice_head: "Usar únicamente para consultas telefónicas",
+    calc_notice_body: "Es el médico quien determina el tamaño del tatuaje y el precio adecuado en la consulta inicial. Esta herramienta sirve únicamente cuando un paciente pide una estimación por teléfono.",
+    length: "Largo (cm)", width: "Ancho (cm)",
+    surface: "Superficie", size: "Tamaño", per_session: "Por sesión",
+    note_lbl: "Nota: ",
+    note_body: "Si la medida está justo por encima de un tramo, es el médico quien decide el tamaño. El coeficiente de relleno sigue siendo subjetivo. Explica tu método al paciente si lo pide.",
+    copy: "Copiar", copied: "Copiado", on_quote: "Según presupuesto",
+    fb_title: "Comentarios", fb_sub: "¿Una pregunta, una duda, una sugerencia? Escríbela aquí, se enviará al equipo.",
+    fb_not_ready: "El formulario aún no está activado. La configuración final está en curso.",
+    fb_sent_title: "Pregunta enviada", fb_sent_body: "Gracias, tu pregunta se ha enviado correctamente al equipo.",
+    fb_another: "Hacer otra pregunta",
+    fb_name: "Tu nombre", fb_optional: "(opcional)", fb_name_ph: "Nombre o apellido",
+    fb_question: "Tu pregunta", fb_question_ph: "Escribe tu pregunta aquí…",
+    fb_error: "El envío ha fallado. Comprueba tu conexión e inténtalo de nuevo.",
+    fb_send: "Enviar mi pregunta", fb_sending: "Enviando…",
+    fb_help: "Tus preguntas ayudan a mejorar la herramienta y la formación.",
+    tab_prices: "Precios",
+    prices_hero_title: "Full Remove: sesiones ilimitadas",
+    prices_hero_sub: "Financiado 18 meses sin intereses · -15% de descuento en España",
+    prices_cta: "Pide cita",
+    prices_per_month: "al mes",
+    prices_installments: "18 cuotas TAE 0%",
+    prices_after_consult: "Tras valoración en consulta",
+    prices_note_label: "Estos precios corresponden al mercado español (intereses subvencionados por RAY STUDIOS SPAIN SL).",
+  },
+  en: {
+    subtitle: "SM Medical Guide",
+    tab_learn: "Learn", tab_themes: "Topics", tab_reflex: "Reflexes", tab_training: "Quiz", tab_calc: "Calc",
+    feedback: "Feedback",
+    footer: "Ray studios · Internal tool. Does not replace medical advice",
+    badge_doctor: "For the practitioner", badge_urgent: "Urgent", badge_forbidden: "We don't do it",
+    search_ph: "Search: blister, sun, price, petroleum jelly…",
+    answers: "answers", answer: "answer",
+    no_answer_1a: "No results for « ", no_answer_1b: " ».",
+    no_answer_2: "Try a shorter word or a synonym.",
+    go_further: "Go further",
+    open: "Open", all_themes: "All topics",
+    cards: "cards", card: "card",
+    touch_reveal: "Tap a card to reveal the answer.",
+    see_answer: "See the answer", flip_back: "Flip back",
+    clear: "Clear",
+    quiz_title: "Quiz", choose_type: "Choose the type of practice.",
+    scenarios_title: "Real situations", scenarios_desc_a: "What to answer a patient? ", scenarios_desc_b: " practice situations.",
+    medical_title: "Medical knowledge", medical_desc_a: "The laser, phototypes, aftercare. ", medical_desc_b: " knowledge questions.",
+    label_situation: "Situation", label_question: "Question",
+    what_answer: "What do you answer?", which_correct: "Which is the correct answer?",
+    next_question: "Next question", see_result: "See the result",
+    pct_correct: "% correct answers",
+    res_100: "Flawless. You've mastered the topic.",
+    res_70: "Very good. Review the questions you hesitated on.",
+    res_low: "Needs work. A pass through Learn and Topics helps consolidate.",
+    restart: "Start over", change_quiz: "Change quiz", score: "Score: ",
+    sub_phrases: "Never say this", sub_glossary: "Glossary",
+    phrases_intro: "Phrases that can put the SM (and Ray studios) in an awkward spot, with the correct rewording.",
+    not_say: "Don't say", say_instead: "Say instead",
+    glossary_ph: "Search a term: fluence, erythema, RTP…",
+    definition: "Definition", how_happens: "How it happens", say_patient: "What to tell the patient",
+    no_term_a: "No term found for « ", no_term_b: " ».",
+    myth_label: "Misconception", reality_label: "The reality",
+    phototypes_lbl: "Phototypes",
+    calc_title: "Tattoo calculator",
+    calc_sub: "Enter the dimensions, the size and price show automatically.",
+    calc_notice_head: "For phone enquiries only",
+    calc_notice_body: "The practitioner determines the tattoo size and the appropriate price during the initial consultation. This tool is only for when a patient asks for an estimate over the phone.",
+    length: "Length (cm)", width: "Width (cm)",
+    surface: "Surface", size: "Size", per_session: "Per session",
+    note_lbl: "Note: ",
+    note_body: "If the measurement is just above a bracket, the practitioner decides the size. The fill coefficient remains subjective. Explain your method to the patient if asked.",
+    copy: "Copy", copied: "Copied", on_quote: "On quote",
+    fb_title: "Feedback", fb_sub: "A question, a doubt, a suggestion? Ask it here, it will be sent to the team.",
+    fb_not_ready: "The form is not activated yet. Final setup is in progress.",
+    fb_sent_title: "Question sent", fb_sent_body: "Thank you, your question has been sent to the team.",
+    fb_another: "Ask another question",
+    fb_name: "Your name", fb_optional: "(optional)", fb_name_ph: "First or last name",
+    fb_question: "Your question", fb_question_ph: "Write your question here…",
+    fb_error: "Sending failed. Check your connection and try again.",
+    fb_send: "Send my question", fb_sending: "Sending…",
+    fb_help: "Your questions help improve the tool and the training.",
+    tab_prices: "Prices",
+    prices_hero_title: "Full Remove: unlimited sessions",
+    prices_hero_sub: "Financed over 18 months interest-free · -15% off in Spain",
+    prices_cta: "Book an appointment",
+    prices_per_month: "per month",
+    prices_installments: "18 instalments 0% APR",
+    prices_after_consult: "After in-consultation assessment",
+    prices_note_label: "These prices apply to the Spanish market (interest subsidised by RAY STUDIOS SPAIN SL).",
+  },
+};
+
 const THEMES = [
-  { id: "before",    label: "Avant la séance",  hint: "Préparation, ce qu'il faut savoir" },
-  { id: "flow",      label: "Le déroulé",       hint: "Consultation, séance, parcours" },
-  { id: "pricing",   label: "Tarifs & mesure",  hint: "Grille, calcul, ajustements" },
-  { id: "care72",    label: "After care",       hint: "Pansement, vaseline, cicatrisation" },
-  { id: "alert",     label: "Quand alerter",    hint: "Signaux, cloques, urgences" },
-  { id: "special",   label: "Cas particuliers", hint: "Sourcils, zones interdites" },
+  { id: "before",    label: "Avant la séance",  hint: "Préparation, ce qu'il faut savoir",
+    label_es: "Antes de la sesión",  hint_es: "Preparación, lo que hay que saber",
+    label_en: "Before the session",  hint_en: "Preparation, what to know" },
+  { id: "flow",      label: "Le déroulé",       hint: "Consultation, séance, parcours",
+    label_es: "El desarrollo",       hint_es: "Consulta, sesión, recorrido",
+    label_en: "The process",         hint_en: "Consultation, session, journey" },
+  { id: "pricing",   label: "Tarifs & mesure",  hint: "Grille, calcul, ajustements",
+    label_es: "Precios y medida",    hint_es: "Tarifas, cálculo, ajustes",
+    label_en: "Pricing & sizing",    hint_en: "Grid, calculation, adjustments" },
+  { id: "care72",    label: "After care",       hint: "Pansement, vaseline, cicatrisation",
+    label_es: "After care",          hint_es: "Apósito, vaselina, cicatrización",
+    label_en: "Aftercare",           hint_en: "Dressing, petroleum jelly, healing" },
+  { id: "alert",     label: "Quand alerter",    hint: "Signaux, cloques, urgences",
+    label_es: "Cuándo alertar",      hint_es: "Señales, ampollas, urgencias",
+    label_en: "When to alert",       hint_en: "Signs, blisters, emergencies" },
+  { id: "special",   label: "Cas particuliers", hint: "Sourcils, zones interdites",
+    label_es: "Casos particulares",  hint_es: "Cejas, zonas prohibidas",
+    label_en: "Special cases",       hint_en: "Eyebrows, forbidden areas" },
 ];
 
 // needsDoctor : la directrice doit transmettre au médecin
@@ -31,6 +258,11 @@ const QA = [
     question: "Comment se préparer avant la séance ?",
     short: "Pas d'exposition solaire intense la semaine d'avant. Si vous êtes un peu bronzé, prévenez-nous, le médecin adaptera les paramètres.",
     detail: "Un léger bronzage n'empêche pas la séance, mais un coup de soleil oblige à reporter. Pas besoin de venir à jeun, vous pouvez manger normalement avant. Vêtements amples conseillés sur la zone à traiter.",
+    question_es: "¿Cómo prepararse antes de la sesión?", question_en: "How to prepare before the session?",
+    short_es: "Sin exposición solar intensa la semana anterior. Si estás algo bronceado, avísanos, el médico ajustará los parámetros.",
+    short_en: "No intense sun exposure the week before. If you're a bit tanned, let us know, the practitioner will adjust the settings.",
+    detail_es: "Un bronceado ligero no impide la sesión, pero una quemadura solar obliga a aplazarla. No hace falta venir en ayunas, puedes comer normalmente antes. Se recomienda ropa holgada sobre la zona a tratar.",
+    detail_en: "A light tan doesn't prevent the session, but sunburn means postponing. No need to come fasting, you can eat normally beforehand. Loose clothing over the area is recommended.",
     keywords: ["préparer", "avant", "préparation", "à jeun", "manger"],
   },
   {
@@ -38,6 +270,11 @@ const QA = [
     question: "Et si je suis enceinte ou j'allaite ?",
     short: "C'est une contre-indication. On reverra ensemble après l'accouchement et la fin de l'allaitement.",
     detail: "Pas de séance pendant la grossesse ni l'allaitement, par principe de précaution. Certains praticiens recommandent d'attendre 4 mois après l'accouchement. On peut planifier dès maintenant pour plus tard.",
+    question_es: "¿Y si estoy embarazada o dando el pecho?", question_en: "What if I'm pregnant or breastfeeding?",
+    short_es: "Es una contraindicación. Lo revisaremos juntos tras el parto y el fin de la lactancia.",
+    short_en: "It's a contraindication. We'll review together after delivery and once breastfeeding ends.",
+    detail_es: "Sin sesión durante el embarazo ni la lactancia, por principio de precaución. Algunos profesionales recomiendan esperar 4 meses tras el parto. Podemos planificar desde ya para más adelante.",
+    detail_en: "No session during pregnancy or breastfeeding, as a precaution. Some practitioners recommend waiting 4 months after delivery. We can plan now for later.",
     keywords: ["enceinte", "grossesse", "allaitement", "bébé"],
   },
   {
@@ -45,6 +282,11 @@ const QA = [
     question: "Je suis mineur, comment ça se passe ?",
     short: "Un parent ou représentant légal doit être présent à la consultation et à chaque séance.",
     detail: "Aucune séance sans accompagnement d'un parent ou représentant légal. C'est valable pour la consultation initiale et toutes les séances suivantes.",
+    question_es: "Soy menor de edad, ¿cómo funciona?", question_en: "I'm a minor, how does it work?",
+    short_es: "Un padre/madre o tutor legal debe estar presente en la consulta y en cada sesión.",
+    short_en: "A parent or legal guardian must be present at the consultation and at every session.",
+    detail_es: "Ninguna sesión sin el acompañamiento de un padre/madre o tutor legal. Es válido para la consulta inicial y todas las sesiones siguientes.",
+    detail_en: "No session without a parent or legal guardian present. This applies to the initial consultation and all following sessions.",
     keywords: ["mineur", "ado", "parents", "16 ans", "17 ans"],
   },
   {
@@ -52,6 +294,11 @@ const QA = [
     question: "Je peux conduire après la séance ?",
     short: "Oui. Pas d'anesthésie, juste du froid local. Aucune contre-indication.",
     detail: "Vous ressortez en pleine possession de vos moyens. La cryothérapie est locale et ses effets disparaissent rapidement.",
+    question_es: "¿Puedo conducir después de la sesión?", question_en: "Can I drive after the session?",
+    short_es: "Sí. Sin anestesia, solo frío local. Ninguna contraindicación.",
+    short_en: "Yes. No anaesthetic, just local cold. No contraindication.",
+    detail_es: "Sales en plena posesión de tus facultades. La crioterapia es local y sus efectos desaparecen rápido.",
+    detail_en: "You leave fully able. Cryotherapy is local and its effects wear off quickly.",
     keywords: ["conduire", "voiture", "rentrer", "voiture seul"],
   },
   {
@@ -59,6 +306,11 @@ const QA = [
     question: "Je dois venir avec quelque chose ?",
     short: "Juste vous-même, votre pièce d'identité, et vos questions. Vêtements amples sur la zone recommandés.",
     detail: "Aucun matériel à apporter. On fournit tout : lunettes, pansement, vaseline, fiche de soins. Prévoyez des vêtements pratiques selon la zone à traiter.",
+    question_es: "¿Tengo que traer algo?", question_en: "Do I need to bring anything?",
+    short_es: "Solo a ti mismo, tu documento de identidad y tus preguntas. Se recomienda ropa holgada sobre la zona.",
+    short_en: "Just yourself, your ID and your questions. Loose clothing over the area is recommended.",
+    detail_es: "No hay que traer material. Lo proporcionamos todo: gafas, apósito, vaselina, ficha de cuidados. Lleva ropa práctica según la zona a tratar.",
+    detail_en: "Nothing to bring. We provide everything: goggles, dressing, petroleum jelly, aftercare sheet. Wear practical clothing depending on the area.",
     keywords: ["amener", "apporter", "matériel", "vêtements"],
   },
   {
@@ -66,6 +318,11 @@ const QA = [
     question: "J'ai un coup de soleil récent, je peux venir ?",
     short: "Non, on doit reporter. C'est une contre-indication stricte.",
     detail: "Un coup de soleil augmente fortement le risque d'hyperpigmentation. On reprogramme la séance une fois la peau totalement remise.",
+    question_es: "Tengo una quemadura solar reciente, ¿puedo venir?", question_en: "I have recent sunburn, can I come?",
+    short_es: "No, hay que aplazar. Es una contraindicación estricta.",
+    short_en: "No, we must postpone. It's a strict contraindication.",
+    detail_es: "Una quemadura solar aumenta mucho el riesgo de hiperpigmentación. Reprogramamos la sesión cuando la piel se haya recuperado por completo.",
+    detail_en: "Sunburn greatly increases the risk of hyperpigmentation. We reschedule once the skin has fully recovered.",
     keywords: ["coup de soleil", "brûlé", "vacances", "uv"],
   },
   {
@@ -73,6 +330,11 @@ const QA = [
     question: "Je prends un médicament, c'est compatible ?",
     short: "À transmettre au médecin pour qu'il évalue. Ne jamais répondre seule sur ce point.",
     detail: "Certains médicaments sont neutres, d'autres demandent un ajustement, certains rares cas reportent la séance. Le médecin évalue lors de la consultation initiale et à chaque mise à jour du dossier.",
+    question_es: "Tomo un medicamento, ¿es compatible?", question_en: "I take a medication, is it compatible?",
+    short_es: "Hay que trasladarlo al médico para que lo evalúe. Nunca respondas tú sola sobre este punto.",
+    short_en: "Pass it to the practitioner to assess. Never answer this on your own.",
+    detail_es: "Algunos medicamentos son neutros, otros requieren un ajuste, y en raros casos se aplaza la sesión. El médico lo evalúa en la consulta inicial y en cada actualización del historial.",
+    detail_en: "Some medications are neutral, others require adjustment, and in rare cases the session is postponed. The practitioner assesses at the initial consultation and each time the file is updated.",
     keywords: ["médicament", "traitement", "antibiotique", "pilule", "antidépresseur", "compatible"],
     needsDoctor: true,
   },
@@ -83,6 +345,11 @@ const QA = [
     question: "Comment se passe la première consultation ?",
     short: "Le médecin évalue le tatouage, prend des photos, remplit le questionnaire médical, explique le parcours et établit le devis. Comptez 45 minutes.",
     detail: "Étapes : motif de consultation, questionnaire médical, photos (avec dermatoscope si besoin), explications laser et soins, mesure et devis, Ray Tattoo Profile, consentement éclairé.",
+    question_es: "¿Cómo es la primera consulta?", question_en: "What happens at the first consultation?",
+    short_es: "El médico evalúa el tatuaje, toma fotos, rellena el cuestionario médico, explica el recorrido y elabora el presupuesto. Cuenta unos 45 minutos.",
+    short_en: "The practitioner assesses the tattoo, takes photos, completes the medical questionnaire, explains the journey and prepares the quote. Allow about 45 minutes.",
+    detail_es: "Etapas: motivo de consulta, cuestionario médico, fotos (con dermatoscopio si hace falta), explicación del láser y los cuidados, medición y presupuesto, Ray Tattoo Profile, consentimiento informado.",
+    detail_en: "Steps: reason for visit, medical questionnaire, photos (with dermatoscope if needed), laser and aftercare explanations, measurement and quote, Ray Tattoo Profile, informed consent.",
     keywords: ["consultation", "première", "déroulé", "rendez-vous", "45 minutes"],
   },
   {
@@ -90,6 +357,11 @@ const QA = [
     question: "Comment se passe une séance de traitement ?",
     short: "Check de l'évolution, photos avant, traitement laser avec cryothérapie et lunettes, soins immédiats (vaseline + pansement), photos après.",
     detail: "Le tir laser lui-même est court (quelques minutes pour les petits tatouages, plus pour les grands). On termine par l'application de vaseline et la pose du pansement. Une fiche de soins est remise à chaque sortie.",
+    question_es: "¿Cómo es una sesión de tratamiento?", question_en: "What happens in a treatment session?",
+    short_es: "Revisión de la evolución, fotos antes, tratamiento láser con crioterapia y gafas, cuidados inmediatos (vaselina + apósito), fotos después.",
+    short_en: "Check on progress, photos before, laser treatment with cryotherapy and goggles, immediate care (petroleum jelly + dressing), photos after.",
+    detail_es: "El disparo del láser en sí es corto (unos minutos en tatuajes pequeños, más en los grandes). Se termina aplicando vaselina y colocando el apósito. Se entrega una ficha de cuidados en cada salida.",
+    detail_en: "The laser shot itself is short (a few minutes for small tattoos, longer for large ones). We finish by applying petroleum jelly and the dressing. An aftercare sheet is given each time.",
     keywords: ["séance", "traitement", "comment ça se passe", "déroulé"],
   },
   {
@@ -97,6 +369,11 @@ const QA = [
     question: "C'est quoi la différence entre une consultation seule et un bundle ?",
     short: "Bundle = consultation + première séance le même jour. Consultation seule = évaluation et plan, séances à programmer ensuite.",
     detail: "Le bundle convient si le médecin valide l'absence de contre-indication et que le patient veut démarrer immédiatement. La consultation seule laisse du temps pour réfléchir au devis avant de s'engager.",
+    question_es: "¿Qué diferencia hay entre una consulta sola y un bundle?", question_en: "What's the difference between a consultation alone and a bundle?",
+    short_es: "Bundle = consulta + primera sesión el mismo día. Consulta sola = evaluación y plan, sesiones a programar después.",
+    short_en: "Bundle = consultation + first session the same day. Consultation alone = assessment and plan, sessions booked later.",
+    detail_es: "El bundle conviene si el médico confirma que no hay contraindicación y el paciente quiere empezar de inmediato. La consulta sola deja tiempo para pensar el presupuesto antes de comprometerse.",
+    detail_en: "The bundle suits patients if the practitioner confirms no contraindication and they want to start right away. The consultation alone gives time to consider the quote before committing.",
     keywords: ["bundle", "consultation seule", "différence", "package"],
   },
   {
@@ -104,6 +381,11 @@ const QA = [
     question: "Le médecin fait tout, je suis là pour quoi ?",
     short: "L'équipe Ray studios gère l'administratif et la logistique pour que le médecin se consacre au médical : consultation, laser, suivi.",
     detail: "Vous accueillez, expliquez le parcours, gérez devis et consentements, et accompagnez le patient. Le médecin est dédié au médical.",
+    question_es: "El médico lo hace todo, ¿para qué estoy yo?", question_en: "The practitioner does everything, what am I here for?",
+    short_es: "El equipo de Ray studios gestiona lo administrativo y la logística para que el médico se dedique a lo médico: consulta, láser, seguimiento.",
+    short_en: "The Ray studios team handles admin and logistics so the practitioner can focus on the medical side: consultation, laser, follow-up.",
+    detail_es: "Tú recibes, explicas el recorrido, gestionas presupuestos y consentimientos, y acompañas al paciente. El médico se dedica a lo médico.",
+    detail_en: "You welcome patients, explain the journey, handle quotes and consent, and support the patient. The practitioner is dedicated to the medical work.",
     keywords: ["rôle", "SM", "directrice", "qui fait quoi", "médecin"],
   },
 
@@ -113,6 +395,11 @@ const QA = [
     question: "Comment on mesure un tatouage ?",
     short: "Longueur × largeur de la zone tatouée, en centimètres. La surface en cm² détermine la taille dans la grille.",
     detail: "Exemple : tatouage 3 × 4 cm = 12 cm² → taille S → 149 €. Le coefficient de remplissage reste subjectif : par souci de transparence, expliquez votre méthode de calcul au patient s'il le demande.",
+    question_es: "¿Cómo se mide un tatuaje?", question_en: "How is a tattoo measured?",
+    short_es: "Largo × ancho de la zona tatuada, en centímetros. La superficie en cm² determina el tamaño en la tabla.",
+    short_en: "Length × width of the tattooed area, in centimetres. The area in cm² determines the size in the grid.",
+    detail_es: "Ejemplo: tatuaje 3 × 4 cm = 12 cm² → tamaño S → 149 €. El coeficiente de relleno es subjetivo: por transparencia, explica tu método de cálculo al paciente si lo pide.",
+    detail_en: "Example: tattoo 3 × 4 cm = 12 cm² → size S → €149. The fill coefficient is subjective: for transparency, explain your calculation method to the patient if asked.",
     keywords: ["mesurer", "mesure", "calcul", "surface", "cm2", "centimètres"],
   },
   {
@@ -120,6 +407,11 @@ const QA = [
     question: "Quels sont les prix ?",
     short: "Tarif par séance, indexé sur la surface en cm². Voir la grille complète.",
     detail: "XXS (< 1 cm²) 59€ · XS (< 5) 99€ · S (5–15) 149€ · M (16–50) 199€ · L (51–100) 249€ · XL (101–250) 299€ · XXL (251–500) 399€ · 3XL (501–800) 549€ · 4XL (801–1150) 699€ · 5XL (1151–1550) 849€ · 6XL (1551–2000) 999€ · 7XL (2001–2500) 1149€ · 8XL (2501–3000) 1299€ · Au-delà : sur devis.",
+    question_es: "¿Cuáles son los precios?", question_en: "What are the prices?",
+    short_es: "Tarifa por sesión, según la superficie en cm². Ver la tabla completa.",
+    short_en: "Price per session, based on the area in cm². See the full grid.",
+    detail_es: "XXS (< 1 cm²) 59€ · XS (< 5) 99€ · S (5–15) 149€ · M (16–50) 199€ · L (51–100) 249€ · XL (101–250) 299€ · XXL (251–500) 399€ · 3XL (501–800) 549€ · 4XL (801–1150) 699€ · 5XL (1151–1550) 849€ · 6XL (1551–2000) 999€ · 7XL (2001–2500) 1149€ · 8XL (2501–3000) 1299€ · Por encima: según presupuesto.",
+    detail_en: "XXS (< 1 cm²) €59 · XS (< 5) €99 · S (5–15) €149 · M (16–50) €199 · L (51–100) €249 · XL (101–250) €299 · XXL (251–500) €399 · 3XL (501–800) €549 · 4XL (801–1150) €699 · 5XL (1151–1550) €849 · 6XL (1551–2000) €999 · 7XL (2001–2500) €1149 · 8XL (2501–3000) €1299 · Above: on quote.",
     keywords: ["prix", "tarif", "combien", "coût", "grille"],
     hasGrid: true,
   },
@@ -128,6 +420,11 @@ const QA = [
     question: "Et si la mesure est tout juste au-dessus d'une tranche ?",
     short: "C'est au jugement du médecin de rester sur la taille ou de passer à l'inférieure. On peut aussi proposer d'ajouter un autre tatouage pour optimiser le devis.",
     detail: "Exemple : 101,5 cm² → arbitrage médecin. Le patient apprécie généralement la transparence sur ce calcul.",
+    question_es: "¿Y si la medida está justo por encima de un tramo?", question_en: "What if the measurement is just above a bracket?",
+    short_es: "Es criterio del médico mantener el tamaño o pasar al inferior. También se puede proponer añadir otro tatuaje para optimizar el presupuesto.",
+    short_en: "It's the practitioner's judgement to keep the size or move to the lower one. You can also suggest adding another tattoo to optimise the quote.",
+    detail_es: "Ejemplo: 101,5 cm² → decisión del médico. El paciente suele agradecer la transparencia sobre este cálculo.",
+    detail_en: "Example: 101.5 cm² → practitioner decides. Patients usually appreciate transparency about this calculation.",
     keywords: ["juste au-dessus", "limite", "tranche", "arrondir"],
   },
   {
@@ -135,6 +432,11 @@ const QA = [
     question: "Mon tatouage n'est pas entièrement rempli, c'est pareil ?",
     short: "Le médecin peut ajuster la zone prise en compte. On l'explique au patient pour que le calcul soit clair.",
     detail: "Cette adaptation est généralement bien perçue : le patient comprend l'ajustement et ne se sent pas lésé. Toujours expliquer la méthode si on adapte.",
+    question_es: "Mi tatuaje no está totalmente relleno, ¿es igual?", question_en: "My tattoo isn't fully filled in, is it the same?",
+    short_es: "El médico puede ajustar la zona considerada. Se explica al paciente para que el cálculo quede claro.",
+    short_en: "The practitioner can adjust the area taken into account. We explain it to the patient so the calculation is clear.",
+    detail_es: "Este ajuste suele percibirse bien: el paciente entiende la adaptación y no se siente perjudicado. Explica siempre el método si haces un ajuste.",
+    detail_en: "This adjustment is usually well received: the patient understands and doesn't feel short-changed. Always explain the method if you adjust.",
     keywords: ["pas rempli", "ajuster", "vide", "espace", "lettres"],
   },
   {
@@ -142,6 +444,11 @@ const QA = [
     question: "Sourcils, taches de rousseur, prix spécifiques ?",
     short: "Sourcils complets 159€ · Pointe des sourcils 99€ · Taches de rousseur 159€. Tarif forfaitaire, pas au cm².",
     detail: "Pour les zones cosmétiques visage, c'est un forfait fixe. La consultation initiale reste obligatoire pour confirmer la faisabilité.",
+    question_es: "Cejas, pecas, ¿precios específicos?", question_en: "Eyebrows, freckles, specific prices?",
+    short_es: "Cejas completas 159€ · Punta de las cejas 99€ · Pecas 159€. Tarifa fija, no por cm².",
+    short_en: "Full eyebrows €159 · Eyebrow tips €99 · Freckles €159. Flat rate, not per cm².",
+    detail_es: "Para las zonas cosméticas del rostro es una tarifa fija. La consulta inicial sigue siendo obligatoria para confirmar la viabilidad.",
+    detail_en: "For cosmetic facial areas it's a flat rate. The initial consultation is still required to confirm feasibility.",
     keywords: ["sourcils", "taches", "rousseur", "cosmétique", "visage"],
   },
   {
@@ -149,6 +456,11 @@ const QA = [
     question: "Et un tatouage circonférentiel (qui fait le tour) ?",
     short: "Grille spécifique, à partir de 149€ pour la taille S. Le calcul prend en compte le tour complet.",
     detail: "Circ. S (< 16 cm²) 149€ · M (16–50) 199€ · L (50–100) 249€ · XL (100–250) 299€ · 2XL (251–500) 399€ · 3XL (501–800) 549€ · 4XL (801–1150) 699€.",
+    question_es: "¿Y un tatuaje circunferencial (que rodea)?", question_en: "And a circumferential tattoo (all the way around)?",
+    short_es: "Tabla específica, desde 149€ para el tamaño S. El cálculo tiene en cuenta la vuelta completa.",
+    short_en: "Specific grid, from €149 for size S. The calculation covers the full circumference.",
+    detail_es: "Circ. S (< 16 cm²) 149€ · M (16–50) 199€ · L (50–100) 249€ · XL (100–250) 299€ · 2XL (251–500) 399€ · 3XL (501–800) 549€ · 4XL (801–1150) 699€.",
+    detail_en: "Circ. S (< 16 cm²) €149 · M (16–50) €199 · L (50–100) €249 · XL (100–250) €299 · 2XL (251–500) €399 · 3XL (501–800) €549 · 4XL (801–1150) €699.",
     keywords: ["circonférentiel", "tour", "bracelet", "cheville", "bras"],
   },
   {
@@ -156,6 +468,11 @@ const QA = [
     question: "Combien de séances le patient devra payer ?",
     short: "Le nombre dépend du Ray Tattoo Profile établi par le médecin. À ne pas annoncer sans son évaluation.",
     detail: "Chaque séance est facturée individuellement. L'estimation du nombre revient au médecin lors de la consultation initiale.",
+    question_es: "¿Cuántas sesiones tendrá que pagar el paciente?", question_en: "How many sessions will the patient pay for?",
+    short_es: "El número depende del Ray Tattoo Profile que establece el médico. No anunciar sin su evaluación.",
+    short_en: "The number depends on the Ray Tattoo Profile set by the practitioner. Don't announce it without their assessment.",
+    detail_es: "Cada sesión se factura por separado. La estimación del número corresponde al médico en la consulta inicial.",
+    detail_en: "Each session is billed separately. Estimating the number is the practitioner's job at the initial consultation.",
     keywords: ["nombre", "séances", "total", "combien fois"],
     needsDoctor: true,
   },
@@ -166,6 +483,11 @@ const QA = [
     question: "Combien de temps garder le pansement ?",
     short: "Jusqu'à la première douche : on l'enlève sans forcer, et on ne le remet pas ensuite.",
     detail: "Le pansement posé par le médecin protège pendant les premières heures. Sous la douche, on enlève sans forcer.",
+    question_es: "¿Cuánto tiempo hay que dejar el apósito?", question_en: "How long to keep the dressing on?",
+    short_es: "Hasta la primera ducha: se retira sin forzar y no se vuelve a poner.",
+    short_en: "Until the first shower: remove gently and don't put it back on.",
+    detail_es: "El apósito colocado por el médico protege durante las primeras horas. En la ducha, se retira sin forzar.",
+    detail_en: "The dressing placed by the practitioner protects for the first few hours. In the shower, remove it gently.",
     keywords: ["pansement", "garder", "enlever", "combien temps"],
   },
   {
@@ -173,6 +495,11 @@ const QA = [
     question: "Comment se laver après la séance ?",
     short: "Savon neutre, sans frotter, eau pas trop chaude. Sécher en tapotant doucement, jamais en frottant.",
     detail: "Pas besoin de couvrir la zone sous la douche. Évitez l'eau brûlante. Tamponnez avec une serviette propre, pas de friction.",
+    question_es: "¿Cómo lavarse tras la sesión?", question_en: "How to wash after the session?",
+    short_es: "Jabón neutro, sin frotar, agua no muy caliente. Secar dando toquecitos suaves, nunca frotando.",
+    short_en: "Neutral soap, no rubbing, water not too hot. Dry by patting gently, never rubbing.",
+    detail_es: "No hace falta cubrir la zona en la ducha. Evita el agua muy caliente. Seca con una toalla limpia, sin fricción.",
+    detail_en: "No need to cover the area in the shower. Avoid very hot water. Pat with a clean towel, no friction.",
     keywords: ["douche", "laver", "savon", "eau"],
   },
   {
@@ -180,6 +507,11 @@ const QA = [
     question: "Quels soins appliquer après la douche ?",
     short: "Vaseline en couche épaisse + compresse + sparadrap. À renouveler 1 fois par jour pendant au moins 72 heures.",
     detail: "Le protocole occlusif (vaseline + pansement) favorise une cicatrisation rapide et propre. Pas de film alimentaire qui favorise la sudation.",
+    question_es: "¿Qué cuidados aplicar tras la ducha?", question_en: "What care after the shower?",
+    short_es: "Vaselina en capa gruesa + compresa + esparadrapo. Renovar 1 vez al día durante al menos 72 horas.",
+    short_en: "Petroleum jelly in a thick layer + compress + tape. Renew once a day for at least 72 hours.",
+    detail_es: "El protocolo oclusivo (vaselina + apósito) favorece una cicatrización rápida y limpia. Nada de film transparente, que favorece la sudoración.",
+    detail_en: "The occlusive protocol (jelly + dressing) promotes fast, clean healing. No cling film, which encourages sweating.",
     keywords: ["après douche", "vaseline", "compresse", "pansement"],
   },
   {
@@ -187,6 +519,11 @@ const QA = [
     question: "Quelle alternative si le patient n'a pas de vaseline ?",
     short: "Aquaphor est une alternative. Pour le visage ou les sourcils, c'est Cicaplast SPF 50.",
     detail: "Sur visage et zones où le pansement est inadapté : Cicaplast SPF 50, 3 fois par jour, dès la sortie. C'est notre protocole spécifique.",
+    question_es: "¿Qué alternativa si el paciente no tiene vaselina?", question_en: "What alternative if the patient has no petroleum jelly?",
+    short_es: "Aquaphor es una alternativa. Para el rostro o las cejas, es Cicaplast SPF 50.",
+    short_en: "Aquaphor is an alternative. For the face or eyebrows, it's Cicaplast SPF 50.",
+    detail_es: "En rostro y zonas donde el apósito no es adecuado: Cicaplast SPF 50, 3 veces al día, desde la salida. Es nuestro protocolo específico.",
+    detail_en: "On the face and areas where a dressing isn't suitable: Cicaplast SPF 50, 3 times a day, from the moment they leave. That's our specific protocol.",
     keywords: ["vaseline", "remplacer", "aquaphor", "alternative", "cicaplast"],
   },
   {
@@ -194,6 +531,11 @@ const QA = [
     question: "Sport, soleil, piscine : autorisés pendant les 48 h ?",
     short: "Non à tout. Pas de sport intense, pas de soleil, pas de piscine, pas de bain, ni sauna ni hammam.",
     detail: "La sudation et la chaleur ralentissent la cicatrisation et augmentent le risque d'infection. Activités douces uniquement.",
+    question_es: "Deporte, sol, piscina: ¿permitidos durante las 48 h?", question_en: "Sport, sun, pool: allowed during the 48 h?",
+    short_es: "No a todo. Nada de deporte intenso, ni sol, ni piscina, ni baño, ni sauna ni hammam.",
+    short_en: "No to all. No intense sport, no sun, no pool, no baths, no sauna or steam room.",
+    detail_es: "El sudor y el calor ralentizan la cicatrización y aumentan el riesgo de infección. Solo actividades suaves.",
+    detail_en: "Sweat and heat slow healing and increase infection risk. Gentle activities only.",
     keywords: ["sport", "piscine", "bain", "sauna", "hammam", "48h"],
   },
   {
@@ -201,6 +543,11 @@ const QA = [
     question: "Peut-on appliquer de la glace sur la zone ?",
     short: "Jamais de glaçon directement sur la peau. Une compresse fraîche enveloppée, brièvement, si la zone chauffe.",
     detail: "La cryothérapie a déjà été faite en séance. Si gonflement ou chaleur, compresse fraîche enveloppée 10 minutes maximum.",
+    question_es: "¿Se puede aplicar hielo en la zona?", question_en: "Can ice be applied to the area?",
+    short_es: "Nunca un cubito directamente sobre la piel. Una compresa fría envuelta, brevemente, si la zona se calienta.",
+    short_en: "Never an ice cube directly on the skin. A wrapped cool compress, briefly, if the area feels hot.",
+    detail_es: "La crioterapia ya se hizo en la sesión. Si hay hinchazón o calor, compresa fría envuelta 10 minutos como máximo.",
+    detail_en: "Cryotherapy was already done in the session. If there's swelling or heat, a wrapped cool compress for 10 minutes max.",
     keywords: ["glace", "froid", "compresse", "chaud"],
   },
 
@@ -210,6 +557,11 @@ const QA = [
     question: "Combien de temps dure la cicatrisation ?",
     short: "7 à 10 jours en moyenne. Variable selon la zone traitée et le respect des soins.",
     detail: "Le délai dépend de la localisation, de la surface et du respect des soins. Les zones très vascularisées cicatrisent plus vite.",
+    question_es: "¿Cuánto dura la cicatrización?", question_en: "How long does healing take?",
+    short_es: "7 a 10 días de media. Variable según la zona tratada y el respeto de los cuidados.",
+    short_en: "7 to 10 days on average. Varies with the area treated and how well aftercare is followed.",
+    detail_es: "El plazo depende de la localización, la superficie y el respeto de los cuidados. Las zonas muy vascularizadas cicatrizan más rápido.",
+    detail_en: "The time depends on location, area and following the care. Well-vascularised areas heal faster.",
     keywords: ["cicatriser", "cicatrisation", "temps", "guérir"],
   },
   {
@@ -217,6 +569,11 @@ const QA = [
     question: "Quels soins après les 72 h de vaseline ?",
     short: "Si pas d'effets secondaires : Cicaplast SPF 50, 3 fois par jour jusqu'à cicatrisation complète. Pansement seulement en cas de frottements.",
     detail: "On passe d'un protocole occlusif (humide) à un protocole crème + protection solaire. La SPF 50 est essentielle même si la zone est couverte.",
+    question_es: "¿Qué cuidados tras las 72 h de vaselina?", question_en: "What care after the 72 h of petroleum jelly?",
+    short_es: "Si no hay efectos secundarios: Cicaplast SPF 50, 3 veces al día hasta la cicatrización completa. Apósito solo en caso de roce.",
+    short_en: "If no side effects: Cicaplast SPF 50, 3 times a day until fully healed. Dressing only in case of rubbing.",
+    detail_es: "Se pasa de un protocolo oclusivo (húmedo) a un protocolo de crema + protección solar. El SPF 50 es esencial aunque la zona esté cubierta.",
+    detail_en: "You move from an occlusive (moist) protocol to a cream + sun protection protocol. SPF 50 is essential even if the area is covered.",
     keywords: ["après 72h", "cicaplast", "crème", "suite", "spf"],
   },
   {
@@ -224,6 +581,11 @@ const QA = [
     question: "Que faire en cas de croûtes ?",
     short: "Normal. Ne jamais gratter ni arracher : on laisse tomber seul et on continue d'hydrater.",
     detail: "Les croûtes font partie du processus. Maintenir la peau hydratée pour éviter les cicatrices. Si démangeaisons, un antihistaminique oral peut soulager.",
+    question_es: "¿Qué hacer si aparecen costras?", question_en: "What to do about scabs?",
+    short_es: "Normal. Nunca rascar ni arrancar: se dejan caer solas y se sigue hidratando.",
+    short_en: "Normal. Never scratch or pick: let them fall off on their own and keep moisturising.",
+    detail_es: "Las costras forman parte del proceso. Mantén la piel hidratada para evitar cicatrices. Si pica, un antihistamínico oral puede aliviar.",
+    detail_en: "Scabs are part of the process. Keep the skin moisturised to avoid scarring. If it itches, an oral antihistamine can help.",
     keywords: ["croûte", "croute", "arracher", "gratter"],
   },
   {
@@ -231,6 +593,11 @@ const QA = [
     question: "Les démangeaisons sont-elles normales ?",
     short: "Fréquent, oui. Pas de corticoïde tant que la peau n'est pas reconstituée. Si c'est très intense, contactez-nous.",
     detail: "Démangeaisons modérées = normal. Démangeaisons intenses ou avec autres signes = on prévient le médecin.",
+    question_es: "¿Es normal el picor?", question_en: "Is itching normal?",
+    short_es: "Sí, es frecuente. Nada de corticoides mientras la piel no se haya reconstruido. Si es muy intenso, contáctanos.",
+    short_en: "Yes, it's common. No corticosteroids until the skin has rebuilt. If it's very intense, contact us.",
+    detail_es: "Picor moderado = normal. Picor intenso o con otros signos = avisamos al médico.",
+    detail_en: "Moderate itching = normal. Intense itching or with other signs = we alert the practitioner.",
     keywords: ["démange", "démangeaison", "gratte", "prurit"],
   },
   {
@@ -238,6 +605,11 @@ const QA = [
     question: "Quand reprendre le sport ?",
     short: "Activité modérée après 48 heures. Sports de contact et transpiration intense : attendre 7 jours.",
     detail: "Pas de rugby, arts martiaux ou crossfit pendant 7 jours. Vêtements amples et respirants en attendant.",
+    question_es: "¿Cuándo retomar el deporte?", question_en: "When to resume sport?",
+    short_es: "Actividad moderada tras 48 horas. Deportes de contacto y sudoración intensa: esperar 7 días.",
+    short_en: "Moderate activity after 48 hours. Contact sports and heavy sweating: wait 7 days.",
+    detail_es: "Nada de rugby, artes marciales o crossfit durante 7 días. Ropa holgada y transpirable mientras tanto.",
+    detail_en: "No rugby, martial arts or crossfit for 7 days. Loose, breathable clothing in the meantime.",
     keywords: ["sport", "reprendre", "activité", "course", "salle"],
   },
   {
@@ -245,6 +617,11 @@ const QA = [
     question: "Quelle protection solaire après cicatrisation ?",
     short: "SPF 50 obligatoire sur la zone si exposition, renouvelé toutes les 2-3 heures. Pas d'exposition prolongée entre les séances.",
     detail: "L'hyperpigmentation post-laser est le principal risque solaire. La protection reste requise jusqu'à la fin du traitement complet.",
+    question_es: "¿Qué protección solar tras la cicatrización?", question_en: "What sun protection after healing?",
+    short_es: "SPF 50 obligatorio en la zona si hay exposición, renovado cada 2-3 horas. Sin exposición prolongada entre sesiones.",
+    short_en: "SPF 50 required on the area if exposed, reapplied every 2-3 hours. No prolonged exposure between sessions.",
+    detail_es: "La hiperpigmentación posláser es el principal riesgo solar. La protección sigue siendo necesaria hasta el fin del tratamiento completo.",
+    detail_en: "Post-laser hyperpigmentation is the main sun risk. Protection is required until the full treatment ends.",
     keywords: ["soleil", "bronzer", "vacances", "spf", "protection"],
   },
   {
@@ -252,6 +629,11 @@ const QA = [
     question: "Quel délai avant la prochaine séance ?",
     short: "Au minimum 6 à 8 semaines après la séance, le temps que le corps évacue les pigments.",
     detail: "Aller plus vite serait contre-productif : les macrophages ont besoin de ce délai pour faire leur travail. C'est valable pour toutes les zones.",
+    question_es: "¿Qué plazo antes de la próxima sesión?", question_en: "How long before the next session?",
+    short_es: "Al menos 6 a 8 semanas después de la sesión, el tiempo que el cuerpo tarda en evacuar los pigmentos.",
+    short_en: "At least 6 to 8 weeks after the session, the time the body needs to clear the pigments.",
+    detail_es: "Ir más rápido sería contraproducente: los macrófagos necesitan ese plazo para hacer su trabajo. Es válido para todas las zonas.",
+    detail_en: "Going faster would be counterproductive: macrophages need that time to do their work. This applies to all areas.",
     keywords: ["prochain", "rendez-vous", "rdv", "espacement", "8 semaines"],
   },
 
@@ -261,6 +643,11 @@ const QA = [
     question: "Quels signaux justifient un appel au centre ?",
     short: "Douleurs importantes, fièvre, écoulement purulent, phlyctènes (cloques), démangeaisons intenses. Le patient doit nous contacter, on prévient le médecin.",
     detail: "Toute apparition inhabituelle dans les jours suivant la séance mérite un contact. Mieux vaut un appel pour rien qu'un signal manqué.",
+    question_es: "¿Qué señales justifican llamar al centro?", question_en: "What signs justify calling the centre?",
+    short_es: "Dolores importantes, fiebre, secreción purulenta, flictenas (ampollas), picor intenso. El paciente debe contactarnos y avisamos al médico.",
+    short_en: "Significant pain, fever, purulent discharge, blisters, intense itching. The patient should contact us and we alert the practitioner.",
+    detail_es: "Cualquier aparición inusual en los días posteriores a la sesión merece un contacto. Mejor una llamada de más que una señal perdida.",
+    detail_en: "Anything unusual in the days after the session is worth a call. Better one call too many than a missed sign.",
     keywords: ["signaux", "alerter", "appeler", "urgence", "symptômes"],
   },
   {
@@ -268,6 +655,11 @@ const QA = [
     question: "Le patient a une cloque, c'est grave ?",
     short: "Une cloque peut être normale dans les heures qui suivent. Surtout ne pas la percer. On prévient le médecin.",
     detail: "Phlyctène = réaction connue. À ne jamais percer soi-même. Le médecin décidera si une évacuation est nécessaire (sous indication, jamais en autonomie).",
+    question_es: "El paciente tiene una ampolla, ¿es grave?", question_en: "The patient has a blister, is it serious?",
+    short_es: "Una ampolla puede ser normal en las horas siguientes. Sobre todo no pincharla. Avisamos al médico.",
+    short_en: "A blister can be normal in the following hours. Above all don't pop it. We alert the practitioner.",
+    detail_es: "Flictena = reacción conocida. Nunca pinchar uno mismo. El médico decidirá si es necesaria una evacuación (bajo indicación, nunca por cuenta propia).",
+    detail_en: "Blister = known reaction. Never pop it yourself. The practitioner will decide if draining is needed (under guidance, never on your own).",
     keywords: ["cloque", "phlyctène", "ampoule", "bulle", "percer"],
   },
   {
@@ -275,6 +667,11 @@ const QA = [
     question: "Rougeur très persistante après plusieurs jours ?",
     short: "Au-delà de 8-10 jours sans amélioration, on prévient le médecin. Il évaluera si traitement nécessaire.",
     detail: "Rougeur modérée pendant les premiers jours = normal. Si ça persiste ou s'aggrave, transmission au médecin pour évaluation.",
+    question_es: "¿Enrojecimiento muy persistente tras varios días?", question_en: "Very persistent redness after several days?",
+    short_es: "Más allá de 8-10 días sin mejora, avisamos al médico. Evaluará si hace falta tratamiento.",
+    short_en: "Beyond 8-10 days with no improvement, we alert the practitioner. They'll assess if treatment is needed.",
+    detail_es: "Enrojecimiento moderado los primeros días = normal. Si persiste o empeora, se traslada al médico para evaluación.",
+    detail_en: "Moderate redness in the first days = normal. If it persists or worsens, pass it to the practitioner for assessment.",
     keywords: ["rougeur", "rouge", "persiste", "longtemps", "érythème"],
   },
   {
@@ -282,6 +679,11 @@ const QA = [
     question: "Le tatouage semble plus foncé après la séance ?",
     short: "Phénomène connu (assombrissement paradoxal) sur certains pigments. Pas grave. Le médecin adaptera les paramètres aux séances suivantes.",
     detail: "Surtout sur encres rouges, blanches ou beiges contenant des oxydes métalliques. Réversible avec ajustement des longueurs d'onde par le médecin.",
+    question_es: "¿El tatuaje parece más oscuro tras la sesión?", question_en: "The tattoo looks darker after the session?",
+    short_es: "Fenómeno conocido (oscurecimiento paradójico) en ciertos pigmentos. No es grave. El médico ajustará los parámetros en las próximas sesiones.",
+    short_en: "Known phenomenon (paradoxical darkening) on certain pigments. Not serious. The practitioner will adjust the settings in the next sessions.",
+    detail_es: "Sobre todo en tintas rojas, blancas o beige con óxidos metálicos. Reversible con ajuste de las longitudes de onda por el médico.",
+    detail_en: "Mainly on red, white or beige inks with metallic oxides. Reversible with the practitioner adjusting wavelengths.",
     keywords: ["plus foncé", "noir", "sombre", "paradoxal", "noirci"],
   },
   {
@@ -289,6 +691,11 @@ const QA = [
     question: "Fièvre, douleur intense, écoulement : on fait quoi ?",
     short: "Le patient contacte le centre immédiatement. On joint le médecin sans attendre.",
     detail: "Signes possibles d'infection. Pas d'attente, pas de minimisation. Transmission rapide au médecin pour prise en charge.",
+    question_es: "Fiebre, dolor intenso, secreción: ¿qué hacemos?", question_en: "Fever, intense pain, discharge: what do we do?",
+    short_es: "El paciente contacta con el centro de inmediato. Localizamos al médico sin esperar.",
+    short_en: "The patient contacts the centre immediately. We reach the practitioner without delay.",
+    detail_es: "Posibles signos de infección. Sin esperar, sin minimizar. Traslado rápido al médico para su manejo.",
+    detail_en: "Possible signs of infection. No waiting, no downplaying. Pass it quickly to the practitioner to handle.",
     keywords: ["fièvre", "infection", "purulent", "écoulement", "urgence"],
     urgent: true,
   },
@@ -297,6 +704,11 @@ const QA = [
     question: "Le patient est très anxieux, qu'est-ce que je fais ?",
     short: "Écouter, rassurer sans minimiser, transmettre ses inquiétudes au médecin. Ne pas trancher seule sur une question médicale.",
     detail: "Reconnaître l'inquiétude est souvent la moitié du travail. Documenter ce que le patient décrit pour que le médecin ait le contexte.",
+    question_es: "El paciente está muy ansioso, ¿qué hago?", question_en: "The patient is very anxious, what do I do?",
+    short_es: "Escuchar, tranquilizar sin minimizar, trasladar sus inquietudes al médico. No decidir tú sola sobre una cuestión médica.",
+    short_en: "Listen, reassure without downplaying, pass their concerns to the practitioner. Don't decide a medical matter on your own.",
+    detail_es: "Reconocer la inquietud suele ser la mitad del trabajo. Documenta lo que el paciente describe para que el médico tenga el contexto.",
+    detail_en: "Acknowledging the worry is often half the work. Document what the patient describes so the practitioner has the context.",
     keywords: ["anxieux", "inquiet", "stressé", "panique"],
   },
 ];
@@ -305,241 +717,521 @@ const SCENARIOS = [
   {
     id: 1,
     situation: "Un patient demande au téléphone combien de séances il lui faudra pour un avant-bras complet noir.",
+    situation_es: "Un paciente pregunta por teléfono cuántas sesiones necesitará para un antebrazo completo en negro.",
+    situation_en: "A patient asks over the phone how many sessions they'll need for a full black forearm.",
     options: [
-      { text: "« Le noir part très bien, donc ce sera assez rapide, sans doute trois ou quatre séances. »", correct: false,
-        why: "Le noir répond bien, mais 'rapide' et un chiffre bas créent une attente intenable." },
-      { text: "« Sans l'évaluation c'est impossible à dire. Le médecin établira votre profil en consultation. »", correct: true,
-        why: "La seule posture juste : aucune estimation chiffrée sans examen, même approximative." },
-      { text: "« Pour une grande pièce noire, comptez en moyenne entre huit et douze séances environ. »", correct: false,
-        why: "Sonne raisonnable, mais une fourchette précise reste un pronostic réservé au médecin." },
+      {
+        text: "« Le noir part très bien, donc ce sera assez rapide, sans doute trois ou quatre séances. »", correct: false,
+        text_es: "« El negro se va muy bien, así que será bastante rápido, seguramente tres o cuatro sesiones. »", text_en: "“Black comes off very well, so it'll be quite quick, probably three or four sessions.”",
+        why: "Le noir répond bien, mais 'rapide' et un chiffre bas créent une attente intenable.",
+        why_es: "El negro responde bien, pero 'rápido' y una cifra baja crean una expectativa insostenible.",
+        why_en: "Black responds well, but 'quick' and a low number create an impossible expectation." },
+      {
+        text: "« Sans l'évaluation c'est impossible à dire. Le médecin établira votre profil en consultation. »", correct: true,
+        text_es: "« Sin la evaluación es imposible decirlo. El médico establecerá tu perfil en consulta. »", text_en: "“Without the assessment it's impossible to say. The practitioner will set your profile at the consultation.”",
+        why: "La seule posture juste : aucune estimation chiffrée sans examen, même approximative.",
+        why_es: "La única postura correcta: ninguna estimación numérica sin examen, ni siquiera aproximada.",
+        why_en: "The only right stance: no numeric estimate without an examination, even a rough one." },
+      {
+        text: "« Pour une grande pièce noire, comptez en moyenne entre huit et douze séances environ. »", correct: false,
+        text_es: "« Para una pieza grande en negro, cuenta de media entre ocho y doce sesiones. »", text_en: "“For a large black piece, count on eight to twelve sessions on average.”",
+        why: "Sonne raisonnable, mais une fourchette précise reste un pronostic réservé au médecin.",
+        why_es: "Suena razonable, pero un rango preciso sigue siendo un pronóstico reservado al médico.",
+        why_en: "Sounds reasonable, but a precise range is still a prognosis reserved for the practitioner." },
     ],
   },
   {
     id: 2,
     situation: "Un patient signale par message une cloque tendue et douloureuse, 36 heures après sa séance.",
+    situation_es: "Un paciente avisa por mensaje de una ampolla tensa y dolorosa, 36 horas después de su sesión.",
+    situation_en: "A patient messages about a tight, painful blister, 36 hours after their session.",
     options: [
-      { text: "« Ne la percez pas, gardez-la propre, et je préviens le médecin pour qu'il vous rappelle. »", correct: true,
-        why: "Consigne minimale juste (ne pas percer) et transmission immédiate au bon interlocuteur." },
-      { text: "« C'est normal, percez-la avec une aiguille bien désinfectée puis mettez un pansement dessus. »", correct: false,
-        why: "On ne donne jamais de consigne de perçage. L'évacuation, si besoin, relève du praticien." },
-      { text: "« C'est une cloque tout à fait normale, elle va se résorber seule, ne vous inquiétez pas. »", correct: false,
-        why: "Une cloque tendue et douloureuse mérite l'avis du praticien, pas une banalisation." },
+      {
+        text: "« Ne la percez pas, gardez-la propre, et je préviens le médecin pour qu'il vous rappelle. »", correct: true,
+        text_es: "« No la pinches, mantenla limpia, y aviso al médico para que te llame. »", text_en: "“Don't pop it, keep it clean, and I'll alert the practitioner to call you.”",
+        why: "Consigne minimale juste (ne pas percer) et transmission immédiate au bon interlocuteur.",
+        why_es: "Instrucción mínima correcta (no pinchar) y traslado inmediato al interlocutor adecuado.",
+        why_en: "Correct minimal instruction (don't pop) and immediate handover to the right person." },
+      {
+        text: "« C'est normal, percez-la avec une aiguille bien désinfectée puis mettez un pansement dessus. »", correct: false,
+        text_es: "« Es normal, pínchala con una aguja bien desinfectada y luego ponle un apósito. »", text_en: "“It's normal, pop it with a well-disinfected needle then put a dressing on it.”",
+        why: "On ne donne jamais de consigne de perçage. L'évacuation, si besoin, relève du praticien.",
+        why_es: "Nunca se da una instrucción de punción. La evacuación, si hace falta, es cosa del médico.",
+        why_en: "You never give an instruction to pop it. Draining, if needed, is the practitioner's job." },
+      {
+        text: "« C'est une cloque tout à fait normale, elle va se résorber seule, ne vous inquiétez pas. »", correct: false,
+        text_es: "« Es una ampolla totalmente normal, se reabsorberá sola, no te preocupes. »", text_en: "“It's a perfectly normal blister, it'll go down on its own, don't worry.”",
+        why: "Une cloque tendue et douloureuse mérite l'avis du praticien, pas une banalisation.",
+        why_es: "Una ampolla tensa y dolorosa merece la opinión del médico, no una banalización.",
+        why_en: "A tight, painful blister deserves the practitioner's opinion, not being brushed off." },
     ],
   },
   {
     id: 3,
     situation: "Une patiente phototype V revient à 3 mois : la zone traitée est nettement plus claire que sa peau.",
+    situation_es: "Una paciente de fototipo V vuelve a los 3 meses: la zona tratada está claramente más clara que su piel.",
+    situation_en: "A phototype V patient returns at 3 months: the treated area is clearly lighter than her skin.",
     options: [
-      { text: "« C'est de l'hypopigmentation, c'est temporaire, ça reviendra à la normale en quelques mois. »", correct: false,
-        why: "Le terme est juste, mais le pronostic ne l'est pas : ça peut être durable, pas à vous de rassurer." },
-      { text: "« C'est l'éclaircissement recherché par le laser sur cette zone, c'est plutôt bon signe pour vous. »", correct: false,
-        why: "Faux : éclaircir la peau n'est pas l'objectif, c'est un effet indésirable possible." },
-      { text: "« Je vous prends un rendez-vous prioritaire avec le médecin pour qu'il puisse évaluer ça. »", correct: true,
-        why: "Une dépigmentation persistante à 3 mois se transmet sans pronostiquer ni minimiser." },
+      {
+        text: "« C'est de l'hypopigmentation, c'est temporaire, ça reviendra à la normale en quelques mois. »", correct: false,
+        text_es: "« Es hipopigmentación, es temporal, volverá a la normalidad en unos meses. »", text_en: "“It's hypopigmentation, it's temporary, it'll go back to normal in a few months.”",
+        why: "Le terme est juste, mais le pronostic ne l'est pas : ça peut être durable, pas à vous de rassurer.",
+        why_es: "El término es correcto, pero el pronóstico no: puede ser duradero, no te toca a ti tranquilizar así.",
+        why_en: "The term is right, but the prognosis isn't: it can be lasting, it's not for you to reassure like that." },
+      {
+        text: "« C'est l'éclaircissement recherché par le laser sur cette zone, c'est plutôt bon signe pour vous. »", correct: false,
+        text_es: "« Es el aclaramiento que busca el láser en esta zona, es más bien buena señal. »", text_en: "“It's the lightening the laser aims for in this area, it's rather a good sign.”",
+        why: "Faux : éclaircir la peau n'est pas l'objectif, c'est un effet indésirable possible.",
+        why_es: "Falso: aclarar la piel no es el objetivo, es un posible efecto indeseado.",
+        why_en: "False: lightening the skin is not the goal, it's a possible unwanted effect." },
+      {
+        text: "« Je vous prends un rendez-vous prioritaire avec le médecin pour qu'il puisse évaluer ça. »", correct: true,
+        text_es: "« Te doy una cita prioritaria con el médico para que pueda evaluarlo. »", text_en: "“I'll get you a priority appointment with the practitioner so they can assess it.”",
+        why: "Une dépigmentation persistante à 3 mois se transmet sans pronostiquer ni minimiser.",
+        why_es: "Una despigmentación persistente a los 3 meses se traslada sin pronosticar ni minimizar.",
+        why_en: "Persistent depigmentation at 3 months is passed on without predicting or minimising." },
     ],
   },
   {
     id: 4,
     situation: "Un patient veut payer en surprise la première séance de sa compagne, qui n'est jamais venue.",
+    situation_es: "Un paciente quiere pagar por sorpresa la primera sesión de su pareja, que nunca ha venido.",
+    situation_en: "A patient wants to pay as a surprise for his partner's first session; she has never come in.",
     options: [
-      { text: "« Je vous fais un bon cadeau du montant souhaité, elle viendra ensuite en consultation elle-même. »", correct: true,
-        why: "Refuse le contournement de la consultation tout en proposant une vraie alternative." },
-      { text: "« Bien sûr, je prends le paiement maintenant et je lui bloque directement une date au planning. »", correct: false,
-        why: "Aucun rendez-vous sans consultation ni consentement signé par la personne concernée." },
-      { text: "« Ce n'est pas possible chez nous, on ne prend pas de paiement de la part d'une tierce personne. »", correct: false,
-        why: "Le bon cadeau règle pourtant la situation. Refuser sec ferme une porte ouverte." },
+      {
+        text: "« Je vous fais un bon cadeau du montant souhaité, elle viendra ensuite en consultation elle-même. »", correct: true,
+        text_es: "« Te hago un vale regalo por el importe que quieras, ella vendrá luego a la consulta en persona. »", text_en: "“I'll make you a gift voucher for the amount you want; she'll then come to the consultation herself.”",
+        why: "Refuse le contournement de la consultation tout en proposant une vraie alternative.",
+        why_es: "Rechaza el rodeo de la consulta y a la vez ofrece una alternativa real.",
+        why_en: "Refuses to bypass the consultation while offering a genuine alternative." },
+      {
+        text: "« Bien sûr, je prends le paiement maintenant et je lui bloque directement une date au planning. »", correct: false,
+        text_es: "« Claro, cobro ahora y le bloqueo directamente una fecha en la agenda. »", text_en: "“Of course, I'll take payment now and block a date for her straight away.”",
+        why: "Aucun rendez-vous sans consultation ni consentement signé par la personne concernée.",
+        why_es: "Ninguna cita sin consulta ni consentimiento firmado por la persona interesada.",
+        why_en: "No appointment without a consultation and consent signed by the person concerned." },
+      {
+        text: "« Ce n'est pas possible chez nous, on ne prend pas de paiement de la part d'une tierce personne. »", correct: false,
+        text_es: "« No es posible aquí, no aceptamos pagos de una tercera persona. »", text_en: "“That's not possible here, we don't take payment from a third party.”",
+        why: "Le bon cadeau règle pourtant la situation. Refuser sec ferme une porte ouverte.",
+        why_es: "El vale regalo resuelve la situación. Un rechazo seco cierra una puerta abierta.",
+        why_en: "The gift voucher solves it. A blunt refusal closes an open door." },
     ],
   },
   {
     id: 5,
     situation: "Un patient insiste pour espacer ses séances de 4 semaines au lieu de 6 à 8, sa peau cicatrise vite.",
+    situation_es: "Un paciente insiste en espaciar sus sesiones a 4 semanas en vez de 6 a 8, su piel cicatriza rápido.",
+    situation_en: "A patient insists on spacing sessions to 4 weeks instead of 6 to 8; his skin heals fast.",
     options: [
-      { text: "« Si votre peau cicatrise vraiment vite, je le note pour que le médecin valide cinq semaines. »", correct: false,
-        why: "Le délai ne dépend pas de la cicatrisation cutanée mais de l'évacuation des pigments." },
-      { text: "« Le délai sert à évacuer les pigments, pas à cicatriser la peau, donc on garde six à huit semaines. »", correct: true,
-        why: "Refus argumenté sur le bon mécanisme : c'est le drainage par les macrophages qui impose le délai." },
-      { text: "« La vitesse de cicatrisation change tout, on peut donc tenter un délai plus court avec prudence. »", correct: false,
-        why: "Confond cicatrisation et évacuation des pigments. Le raccourci est faux." },
+      {
+        text: "« Si votre peau cicatrise vraiment vite, je le note pour que le médecin valide cinq semaines. »", correct: false,
+        text_es: "« Si tu piel cicatriza muy rápido, lo anoto para que el médico valide cinco semanas. »", text_en: "“If your skin heals very fast, I'll note it so the practitioner approves five weeks.”",
+        why: "Le délai ne dépend pas de la cicatrisation cutanée mais de l'évacuation des pigments.",
+        why_es: "El plazo no depende de la cicatrización cutánea sino de la evacuación de los pigmentos.",
+        why_en: "The interval doesn't depend on skin healing but on clearing the pigments." },
+      {
+        text: "« Le délai sert à évacuer les pigments, pas à cicatriser la peau, donc on garde six à huit semaines. »", correct: true,
+        text_es: "« El plazo sirve para evacuar los pigmentos, no para cicatrizar la piel, así que mantenemos seis a ocho semanas. »", text_en: "“The interval is to clear the pigments, not to heal the skin, so we keep six to eight weeks.”",
+        why: "Refus argumenté sur le bon mécanisme : c'est le drainage par les macrophages qui impose le délai.",
+        why_es: "Rechazo argumentado con el mecanismo correcto: el drenaje por los macrófagos impone el plazo.",
+        why_en: "A reasoned refusal on the right mechanism: macrophage drainage sets the interval." },
+      {
+        text: "« La vitesse de cicatrisation change tout, on peut donc tenter un délai plus court avec prudence. »", correct: false,
+        text_es: "« La velocidad de cicatrización lo cambia todo, así que podemos intentar un plazo más corto con prudencia. »", text_en: "“Healing speed changes everything, so we can try a shorter interval carefully.”",
+        why: "Confond cicatrisation et évacuation des pigments. Le raccourci est faux.",
+        why_es: "Confunde cicatrización y evacuación de pigmentos. El atajo es falso.",
+        why_en: "Confuses healing with pigment clearance. The shortcut is wrong." },
     ],
   },
   {
     id: 6,
     situation: "Un patient arrive avec un léger coup de soleil sur la zone à traiter, mais il a posé un jour de congé.",
+    situation_es: "Un paciente llega con una leve quemadura solar en la zona a tratar, pero se ha cogido el día libre.",
+    situation_en: "A patient arrives with mild sunburn on the area to treat, but has taken a day off work.",
     options: [
-      { text: "« On va adapter la fluence à la baisse et on fait quand même votre séance aujourd'hui. »", correct: false,
-        why: "Un coup de soleil est une contre-indication stricte, pas un paramètre à ajuster." },
-      { text: "« Le médecin tranchera, installez-vous en salle d'attente et je le préviens de la situation. »", correct: false,
-        why: "La règle est claire : coup de soleil égale report. Inutile de faire patienter." },
-      { text: "« Un coup de soleil impose de reporter, même léger, je vais donc vous reprogrammer. »", correct: true,
-        why: "Décision juste malgré le congé du patient : la sécurité prime sur l'organisation." },
+      {
+        text: "« On va adapter la fluence à la baisse et on fait quand même votre séance aujourd'hui. »", correct: false,
+        text_es: "« Vamos a bajar la fluencia y aun así te hacemos la sesión hoy. »", text_en: "“We'll lower the fluence and do your session today anyway.”",
+        why: "Un coup de soleil est une contre-indication stricte, pas un paramètre à ajuster.",
+        why_es: "Una quemadura solar es una contraindicación estricta, no un parámetro que ajustar.",
+        why_en: "Sunburn is a strict contraindication, not a parameter to adjust." },
+      {
+        text: "« Le médecin tranchera, installez-vous en salle d'attente et je le préviens de la situation. »", correct: false,
+        text_es: "« El médico decidirá, siéntate en la sala de espera y le aviso de la situación. »", text_en: "“The practitioner will decide, take a seat in the waiting room and I'll let them know.”",
+        why: "La règle est claire : coup de soleil égale report. Inutile de faire patienter.",
+        why_es: "La regla es clara: quemadura solar igual a aplazar. No tiene sentido hacer esperar.",
+        why_en: "The rule is clear: sunburn means postponing. No point making them wait." },
+      {
+        text: "« Un coup de soleil impose de reporter, même léger, je vais donc vous reprogrammer. »", correct: true,
+        text_es: "« Una quemadura solar obliga a aplazar, aunque sea leve, así que te reprogramo. »", text_en: "“Sunburn means postponing, even if mild, so I'll reschedule you.”",
+        why: "Décision juste malgré le congé du patient : la sécurité prime sur l'organisation.",
+        why_es: "Decisión correcta pese al día libre del paciente: la seguridad prima sobre la organización.",
+        why_en: "Right call despite the patient's day off: safety comes before scheduling." },
     ],
   },
   {
     id: 7,
     situation: "Un patient sous isotrétinoïne depuis 3 mois pour son acné demande à démarrer son détatouage.",
+    situation_es: "Un paciente en tratamiento con isotretinoína desde hace 3 meses por su acné pide empezar la eliminación.",
+    situation_en: "A patient on isotretinoin for 3 months for acne asks to start removal.",
     options: [
-      { text: "« L'isotrétinoïne agit sur l'acné, pas sur la peau face au laser, donc on peut commencer. »", correct: false,
-        why: "Faux : c'est une contre-indication temporaire connue. Et on ne tranche jamais soi-même." },
-      { text: "« Je note votre traitement dans le dossier, c'est au médecin de l'évaluer en consultation. »", correct: true,
-        why: "Ni validation ni refus à votre niveau : transmission et documentation, point." },
-      { text: "« C'est contre-indiqué, il faudra revenir environ deux mois après la fin de votre traitement. »", correct: false,
-        why: "L'info va dans le bon sens, mais c'est au médecin de poser le délai, pas à vous." },
+      {
+        text: "« L'isotrétinoïne agit sur l'acné, pas sur la peau face au laser, donc on peut commencer. »", correct: false,
+        text_es: "« La isotretinoína actúa sobre el acné, no sobre la piel frente al láser, así que podemos empezar. »", text_en: "“Isotretinoin acts on acne, not on the skin's response to the laser, so we can start.”",
+        why: "Faux : c'est une contre-indication temporaire connue. Et on ne tranche jamais soi-même.",
+        why_es: "Falso: es una contraindicación temporal conocida. Y nunca se decide por cuenta propia.",
+        why_en: "False: it's a known temporary contraindication. And you never decide on your own." },
+      {
+        text: "« Je note votre traitement dans le dossier, c'est au médecin de l'évaluer en consultation. »", correct: true,
+        text_es: "« Anoto tu tratamiento en el historial, es el médico quien debe evaluarlo en consulta. »", text_en: "“I'll note your treatment in the file; it's the practitioner who must assess it at the consultation.”",
+        why: "Ni validation ni refus à votre niveau : transmission et documentation, point.",
+        why_es: "Ni validación ni rechazo a tu nivel: traslado y documentación, punto.",
+        why_en: "Neither approval nor refusal at your level: hand over and document, that's it." },
+      {
+        text: "« C'est contre-indiqué, il faudra revenir environ deux mois après la fin de votre traitement. »", correct: false,
+        text_es: "« Está contraindicado, habrá que volver unos dos meses después de terminar tu tratamiento. »", text_en: "“It's contraindicated, you'll need to come back about two months after finishing your treatment.”",
+        why: "L'info va dans le bon sens, mais c'est au médecin de poser le délai, pas à vous.",
+        why_es: "La info va en buena dirección, pero es el médico quien fija el plazo, no tú.",
+        why_en: "The info is on the right track, but it's the practitioner who sets the timeframe, not you." },
     ],
   },
   {
     id: 8,
     situation: "Un patient compare votre devis à un concurrent 30 % moins cher et demande pourquoi un tel écart.",
+    situation_es: "Un paciente compara tu presupuesto con un competidor un 30 % más barato y pregunta por qué esa diferencia.",
+    situation_en: "A patient compares your quote to a competitor 30% cheaper and asks why the gap.",
     options: [
-      { text: "« Les centres low-cost rognent forcément sur la sécurité, nous on fait vraiment les choses bien. »", correct: false,
-        why: "Dénigre sans savoir : vous ne connaissez pas les pratiques exactes du concurrent." },
-      { text: "« Chez nous, c'est le médecin qui réalise la séance, le laser est un PicoWay, et tout est encadré. »", correct: true,
-        why: "Donne des critères factuels de comparaison, sans dénigrer ni se justifier sur le prix seul." },
-      { text: "« Le prix reflète simplement la qualité, vous avez ce pour quoi vous payez, c'est tout. »", correct: false,
-        why: "Argument creux et un peu condescendant. N'aide pas le patient à comparer vraiment." },
+      {
+        text: "« Les centres low-cost rognent forcément sur la sécurité, nous on fait vraiment les choses bien. »", correct: false,
+        text_es: "« Los centros low-cost recortan por fuerza en seguridad, nosotros hacemos las cosas bien. »", text_en: "“Low-cost centres inevitably cut corners on safety; we do things properly.”",
+        why: "Dénigre sans savoir : vous ne connaissez pas les pratiques exactes du concurrent.",
+        why_es: "Desprestigia sin saber: no conoces las prácticas exactas del competidor.",
+        why_en: "Runs them down without knowing: you don't know the competitor's exact practices." },
+      {
+        text: "« Chez nous, c'est le médecin qui réalise la séance, le laser est un PicoWay, et tout est encadré. »", correct: true,
+        text_es: "« Aquí es el médico quien realiza la sesión, el láser es un PicoWay y todo está supervisado. »", text_en: "“Here the practitioner performs the session, the laser is a PicoWay, and everything is supervised.”",
+        why: "Donne des critères factuels de comparaison, sans dénigrer ni se justifier sur le prix seul.",
+        why_es: "Da criterios objetivos de comparación, sin desprestigiar ni justificarse solo por el precio.",
+        why_en: "Gives factual comparison criteria, without running others down or justifying on price alone." },
+      {
+        text: "« Le prix reflète simplement la qualité, vous avez ce pour quoi vous payez, c'est tout. »", correct: false,
+        text_es: "« El precio simplemente refleja la calidad, tienes lo que pagas, sin más. »", text_en: "“The price simply reflects quality, you get what you pay for, that's all.”",
+        why: "Argument creux et un peu condescendant. N'aide pas le patient à comparer vraiment.",
+        why_es: "Argumento vacío y algo condescendiente. No ayuda al paciente a comparar de verdad.",
+        why_en: "An empty, slightly condescending argument. Doesn't help the patient really compare." },
     ],
   },
   {
     id: 9,
     situation: "Une cliente vous confie en salle d'attente qu'elle traverse une période très sombre en ce moment.",
+    situation_es: "Una clienta te confía en la sala de espera que está pasando por un momento muy oscuro.",
+    situation_en: "A client confides in the waiting room that she's going through a very dark period.",
     options: [
-      { text: "« Je vais prévenir le médecin pour voir si on peut maintenir votre séance malgré tout aujourd'hui. »", correct: false,
-        why: "Transforme une confidence intime en logistique de planning. Déplacé." },
-      { text: "« La séance va vous changer les idées, vous allez voir, ça va aller beaucoup mieux après. »", correct: false,
-        why: "Minimise et fait de la séance une fausse thérapie. La souffrance n'est pas une parenthèse." },
-      { text: "« Je vous entends. Le 3114 est une ligne d'écoute gratuite, et on peut aussi reporter si besoin. »", correct: true,
-        why: "Écoute, oriente vers une ressource réelle, laisse le choix sans forcer." },
+      {
+        text: "« Je vais prévenir le médecin pour voir si on peut maintenir votre séance malgré tout aujourd'hui. »", correct: false,
+        text_es: "« Voy a avisar al médico para ver si podemos mantener tu sesión de todos modos hoy. »", text_en: "“I'll let the practitioner know to see if we can keep your session today anyway.”",
+        why: "Transforme une confidence intime en logistique de planning. Déplacé.",
+        why_es: "Convierte una confidencia íntima en logística de agenda. Fuera de lugar.",
+        why_en: "Turns an intimate confidence into scheduling logistics. Out of place." },
+      {
+        text: "« La séance va vous changer les idées, vous allez voir, ça va aller beaucoup mieux après. »", correct: false,
+        text_es: "« La sesión te va a despejar la mente, ya verás, después estarás mucho mejor. »", text_en: "“The session will take your mind off things, you'll see, you'll feel much better after.”",
+        why: "Minimise et fait de la séance une fausse thérapie. La souffrance n'est pas une parenthèse.",
+        why_es: "Minimiza y convierte la sesión en una falsa terapia. El sufrimiento no es un paréntesis.",
+        why_en: "Minimises and makes the session a fake therapy. Suffering is not a parenthesis." },
+      {
+        text: "« Je vous entends. Le 3114 est une ligne d'écoute gratuite, et on peut aussi reporter si besoin. »", correct: true,
+        text_es: "« Te escucho. El 024 es una línea de escucha gratuita, y también podemos aplazar si lo necesitas. »", text_en: "“I hear you. There are free listening helplines, and we can also postpone if you need.”",
+        why: "Écoute, oriente vers une ressource réelle, laisse le choix sans forcer.",
+        why_es: "Escucha, orienta hacia un recurso real, deja elegir sin forzar.",
+        why_en: "Listens, points to a real resource, leaves the choice without pushing." },
     ],
   },
   {
     id: 10,
     situation: "Un patient demande pourquoi le médecin commence par de petits tirs test au lieu de tout traiter.",
+    situation_es: "Un paciente pregunta por qué el médico empieza con pequeños disparos de prueba en vez de tratarlo todo.",
+    situation_en: "A patient asks why the practitioner starts with small test shots instead of treating everything.",
     options: [
-      { text: "« C'est une façon de vous facturer une séance avant de s'engager vraiment sur le reste du tatouage. »", correct: false,
-        why: "Faux et contre-productif : les points test ne sont pas une étape commerciale." },
-      { text: "« C'est pour vérifier comment votre peau réagit au laser avant de traiter toute la zone. »", correct: true,
-        why: "Vraie raison : évaluer la réaction cutanée et ajuster les paramètres en sécurité." },
-      { text: "« C'est une obligation légale qui s'impose avant tout traitement réalisé au laser. »", correct: false,
-        why: "Ce n'est pas une obligation légale, c'est une précaution clinique." },
+      {
+        text: "« C'est une façon de vous facturer une séance avant de s'engager vraiment sur le reste du tatouage. »", correct: false,
+        text_es: "« Es una forma de cobrarte una sesión antes de comprometerse de verdad con el resto del tatuaje. »", text_en: "“It's a way of charging you for a session before really committing to the rest of the tattoo.”",
+        why: "Faux et contre-productif : les points test ne sont pas une étape commerciale.",
+        why_es: "Falso y contraproducente: los puntos de prueba no son una etapa comercial.",
+        why_en: "False and counterproductive: test spots are not a commercial step." },
+      {
+        text: "« C'est pour vérifier comment votre peau réagit au laser avant de traiter toute la zone. »", correct: true,
+        text_es: "« Es para comprobar cómo reacciona tu piel al láser antes de tratar toda la zona. »", text_en: "“It's to check how your skin reacts to the laser before treating the whole area.”",
+        why: "Vraie raison : évaluer la réaction cutanée et ajuster les paramètres en sécurité.",
+        why_es: "Razón real: evaluar la reacción cutánea y ajustar los parámetros con seguridad.",
+        why_en: "Real reason: assess the skin's reaction and adjust settings safely." },
+      {
+        text: "« C'est une obligation légale qui s'impose avant tout traitement réalisé au laser. »", correct: false,
+        text_es: "« Es una obligación legal antes de cualquier tratamiento con láser. »", text_en: "“It's a legal requirement before any laser treatment.”",
+        why: "Ce n'est pas une obligation légale, c'est une précaution clinique.",
+        why_es: "No es una obligación legal, es una precaución clínica.",
+        why_en: "It's not a legal requirement, it's a clinical precaution." },
     ],
   },
   {
     id: 11,
     situation: "Un patient veut savoir si son tatouage rouge vif partira aussi bien que la partie noire.",
+    situation_es: "Un paciente quiere saber si su tatuaje rojo intenso se irá tan bien como la parte negra.",
+    situation_en: "A patient wants to know if his bright red tattoo will come off as well as the black part.",
     options: [
-      { text: "« Le rouge ne part jamais vraiment, il faut vous attendre à en garder une trace visible. »", correct: false,
-        why: "Faux : nos longueurs d'onde traitent le rouge. Décourage à tort." },
-      { text: "« Aucun souci, toutes les couleurs partent exactement de la même façon avec notre laser. »", correct: false,
-        why: "Trop affirmatif : les couleurs vives sont plus capricieuses que le noir." },
-      { text: "« Les couleurs répondent moins vite que le noir, le médecin évaluera votre cas précis. »", correct: true,
-        why: "Honnête sur la difficulté relative, sans fermer la porte, et renvoie à l'évaluation." },
+      {
+        text: "« Le rouge ne part jamais vraiment, il faut vous attendre à en garder une trace visible. »", correct: false,
+        text_es: "« El rojo nunca se va del todo, tienes que contar con que quede una marca visible. »", text_en: "“Red never fully comes off, you should expect a visible trace to remain.”",
+        why: "Faux : nos longueurs d'onde traitent le rouge. Décourage à tort.",
+        why_es: "Falso: nuestras longitudes de onda tratan el rojo. Desanima sin motivo.",
+        why_en: "False: our wavelengths treat red. Discourages for no reason." },
+      {
+        text: "« Aucun souci, toutes les couleurs partent exactement de la même façon avec notre laser. »", correct: false,
+        text_es: "« Sin problema, todos los colores se van exactamente igual con nuestro láser. »", text_en: "“No problem, all colours come off exactly the same with our laser.”",
+        why: "Trop affirmatif : les couleurs vives sont plus capricieuses que le noir.",
+        why_es: "Demasiado tajante: los colores vivos son más caprichosos que el negro.",
+        why_en: "Too absolute: bright colours are trickier than black." },
+      {
+        text: "« Les couleurs répondent moins vite que le noir, le médecin évaluera votre cas précis. »", correct: true,
+        text_es: "« Los colores responden más despacio que el negro, el médico evaluará tu caso concreto. »", text_en: "“Colours respond more slowly than black; the practitioner will assess your specific case.”",
+        why: "Honnête sur la difficulté relative, sans fermer la porte, et renvoie à l'évaluation.",
+        why_es: "Honesto sobre la dificultad relativa, sin cerrar la puerta, y remite a la evaluación.",
+        why_en: "Honest about the relative difficulty, without closing the door, and refers to the assessment." },
     ],
   },
   {
     id: 12,
     situation: "Une patiente enceinte de 4 mois veut bloquer dès maintenant une date pour 6 mois après l'accouchement.",
+    situation_es: "Una paciente embarazada de 4 meses quiere bloquear ya una fecha para 6 meses después del parto.",
+    situation_en: "A patient 4 months pregnant wants to book now for 6 months after delivery.",
     options: [
-      { text: "« Je vous mets dans notre liste de rappel pour vous recontacter après votre accouchement. »", correct: true,
-        why: "Évite un engagement à long terme alors que tout peut changer (allaitement, médicaments)." },
-      { text: "« Je vous bloque la date tout de suite, comme ça vous êtes certaine d'avoir votre créneau. »", correct: false,
-        why: "Bloquer un créneau ferme à 8 mois est imprudent : la situation médicale aura pu changer." },
-      { text: "« On verra ça le moment venu, rappelez-nous simplement quand vous vous sentirez prête. »", correct: false,
-        why: "Risque de perdre le contact. La liste de rappel est nettement plus pro." },
+      {
+        text: "« Je vous mets dans notre liste de rappel pour vous recontacter après votre accouchement. »", correct: true,
+        text_es: "« Te apunto en nuestra lista de recordatorio para volver a contactarte tras el parto. »", text_en: "“I'll add you to our reminder list to get back in touch after the birth.”",
+        why: "Évite un engagement à long terme alors que tout peut changer (allaitement, médicaments).",
+        why_es: "Evita un compromiso a largo plazo cuando todo puede cambiar (lactancia, medicación).",
+        why_en: "Avoids a long-term commitment when everything could change (breastfeeding, medication)." },
+      {
+        text: "« Je vous bloque la date tout de suite, comme ça vous êtes certaine d'avoir votre créneau. »", correct: false,
+        text_es: "« Te bloqueo la fecha ahora mismo, así te aseguras el hueco. »", text_en: "“I'll block the date right now so you're sure of your slot.”",
+        why: "Bloquer un créneau ferme à 8 mois est imprudent : la situation médicale aura pu changer.",
+        why_es: "Bloquear un hueco firme a 8 meses es imprudente: la situación médica habrá podido cambiar.",
+        why_en: "Locking a firm slot 8 months out is unwise: the medical situation may have changed." },
+      {
+        text: "« On verra ça le moment venu, rappelez-nous simplement quand vous vous sentirez prête. »", correct: false,
+        text_es: "« Ya lo veremos llegado el momento, llámanos cuando te sientas preparada. »", text_en: "“We'll see when the time comes, just call us when you feel ready.”",
+        why: "Risque de perdre le contact. La liste de rappel est nettement plus pro.",
+        why_es: "Riesgo de perder el contacto. La lista de recordatorio es mucho más profesional.",
+        why_en: "Risk of losing contact. The reminder list is far more professional." },
     ],
   },
   {
     id: 13,
     situation: "Un patient ressort de sa première séance sur phototype VI et s'inquiète d'avoir presque rien senti.",
+    situation_es: "Un paciente sale de su primera sesión en fototipo VI y le preocupa haber notado casi nada.",
+    situation_en: "A patient leaves their first session on phototype VI and worries they felt almost nothing.",
     options: [
-      { text: "« Si vous n'avez rien senti, c'est qu'on n'a pas tiré assez fort, on montera la prochaine fois. »", correct: false,
-        why: "Faux et inquiétant : la douleur n'est pas le critère, et les fluences basses sont protocolaires." },
-      { text: "« Le laser ne fait de toute façon jamais vraiment mal, c'est normal de ne presque rien sentir. »", correct: false,
-        why: "Faux : le laser peut être inconfortable. Ici c'est la fluence basse qui explique." },
-      { text: "« Sur une peau foncée, on commence volontairement en douceur, c'est un choix de sécurité. »", correct: true,
-        why: "Explique le protocole : fluences basses au départ sur phototype VI, montée progressive." },
+      {
+        text: "« Si vous n'avez rien senti, c'est qu'on n'a pas tiré assez fort, on montera la prochaine fois. »", correct: false,
+        text_es: "« Si no has notado nada, es que no disparamos lo bastante fuerte, subiremos la próxima vez. »", text_en: "“If you felt nothing, we didn't fire hard enough, we'll go up next time.”",
+        why: "Faux et inquiétant : la douleur n'est pas le critère, et les fluences basses sont protocolaires.",
+        why_es: "Falso e inquietante: el dolor no es el criterio, y las fluencias bajas son protocolarias.",
+        why_en: "False and alarming: pain isn't the criterion, and low fluences are protocol." },
+      {
+        text: "« Le laser ne fait de toute façon jamais vraiment mal, c'est normal de ne presque rien sentir. »", correct: false,
+        text_es: "« El láser de todos modos nunca duele de verdad, es normal no notar casi nada. »", text_en: "“The laser never really hurts anyway, it's normal to feel almost nothing.”",
+        why: "Faux : le laser peut être inconfortable. Ici c'est la fluence basse qui explique.",
+        why_es: "Falso: el láser puede ser molesto. Aquí es la fluencia baja lo que lo explica.",
+        why_en: "False: the laser can be uncomfortable. Here the low fluence explains it." },
+      {
+        text: "« Sur une peau foncée, on commence volontairement en douceur, c'est un choix de sécurité. »", correct: true,
+        text_es: "« En una piel oscura empezamos a propósito con suavidad, es una decisión de seguridad. »", text_en: "“On dark skin we deliberately start gently, it's a safety choice.”",
+        why: "Explique le protocole : fluences basses au départ sur phototype VI, montée progressive.",
+        why_es: "Explica el protocolo: fluencias bajas al inicio en fototipo VI, subida progresiva.",
+        why_en: "Explains the protocol: low fluences to start on phototype VI, gradual increase." },
     ],
   },
   {
     id: 14,
     situation: "Un patient demande si son grain de beauté situé en plein milieu du tatouage sera traité aussi.",
+    situation_es: "Un paciente pregunta si su lunar situado en pleno centro del tatuaje se tratará también.",
+    situation_en: "A patient asks whether the mole in the middle of the tattoo will be treated too.",
     options: [
-      { text: "« On le protège pendant toute la séance, le médecin l'examinera et décidera de la suite. »", correct: true,
-        why: "Bonne posture : protection systématique du naevus, examen et décision au médecin." },
-      { text: "« On tire dessus comme sur le reste du tatouage, ça ne pose aucun problème particulier. »", correct: false,
-        why: "Dangereux : on ne passe jamais le laser sur un naevus sans examen médical." },
-      { text: "« Faites-le d'abord contrôler par un dermatologue avant de revenir nous voir pour la séance. »", correct: false,
-        why: "Excessif : notre médecin peut l'examiner et décider de le protéger sur place." },
+      {
+        text: "« On le protège pendant toute la séance, le médecin l'examinera et décidera de la suite. »", correct: true,
+        text_es: "« Lo protegemos durante toda la sesión, el médico lo examinará y decidirá qué hacer. »", text_en: "“We protect it throughout the session; the practitioner will examine it and decide.”",
+        why: "Bonne posture : protection systématique du naevus, examen et décision au médecin.",
+        why_es: "Buena postura: protección sistemática del nevus, examen y decisión del médico.",
+        why_en: "Good stance: systematic protection of the mole, examination and decision by the practitioner." },
+      {
+        text: "« On tire dessus comme sur le reste du tatouage, ça ne pose aucun problème particulier. »", correct: false,
+        text_es: "« Disparamos encima como en el resto del tatuaje, no plantea ningún problema. »", text_en: "“We fire over it like the rest of the tattoo, it's no problem at all.”",
+        why: "Dangereux : on ne passe jamais le laser sur un naevus sans examen médical.",
+        why_es: "Peligroso: nunca se pasa el láser sobre un nevus sin examen médico.",
+        why_en: "Dangerous: you never pass the laser over a mole without a medical examination." },
+      {
+        text: "« Faites-le d'abord contrôler par un dermatologue avant de revenir nous voir pour la séance. »", correct: false,
+        text_es: "« Primero háztelo revisar por un dermatólogo antes de volver para la sesión. »", text_en: "“First have it checked by a dermatologist before coming back for the session.”",
+        why: "Excessif : notre médecin peut l'examiner et décider de le protéger sur place.",
+        why_es: "Excesivo: nuestro médico puede examinarlo y decidir protegerlo allí mismo.",
+        why_en: "Excessive: our practitioner can examine it and decide to protect it on the spot." },
     ],
   },
   {
     id: 15,
     situation: "Un patient appelle à 22h, inquiet d'une rougeur étendue apparue après sa séance de l'après-midi.",
+    situation_es: "Un paciente llama a las 22h, preocupado por un enrojecimiento extenso tras su sesión de la tarde.",
+    situation_en: "A patient calls at 10pm, worried about widespread redness after their afternoon session.",
     options: [
-      { text: "« Le centre est déjà fermé, le mieux est de rappeler demain à l'ouverture pour en parler. »", correct: false,
-        why: "Il s'inquiète maintenant. On peut écouter et trier avant de renvoyer à demain." },
-      { text: "« Décrivez-moi ce que vous voyez. Pas de fièvre ni d'écoulement ? Je fais remonter au médecin. »", correct: true,
-        why: "Écoute, tri sur les signes graves, transmission. Posture pro même hors horaires." },
-      { text: "« Une rougeur c'est toujours parfaitement normal après le laser, il ne faut pas vous inquiéter. »", correct: false,
-        why: "Une rougeur étendue n'est pas anodine. La balayer d'un revers est risqué." },
+      {
+        text: "« Le centre est déjà fermé, le mieux est de rappeler demain à l'ouverture pour en parler. »", correct: false,
+        text_es: "« El centro ya está cerrado, lo mejor es llamar mañana a la apertura para hablarlo. »", text_en: "“The centre is already closed, best to call tomorrow at opening to discuss it.”",
+        why: "Il s'inquiète maintenant. On peut écouter et trier avant de renvoyer à demain.",
+        why_es: "Está preocupado ahora. Se puede escuchar y triar antes de remitir a mañana.",
+        why_en: "They're worried now. You can listen and triage before sending them to tomorrow." },
+      {
+        text: "« Décrivez-moi ce que vous voyez. Pas de fièvre ni d'écoulement ? Je fais remonter au médecin. »", correct: true,
+        text_es: "« Descríbeme lo que ves. ¿Sin fiebre ni secreción? Lo traslado al médico. »", text_en: "“Describe what you see. No fever or discharge? I'll escalate to the practitioner.”",
+        why: "Écoute, tri sur les signes graves, transmission. Posture pro même hors horaires.",
+        why_es: "Escucha, tría los signos graves, traslada. Postura profesional incluso fuera de horario.",
+        why_en: "Listens, triages the serious signs, escalates. Professional even out of hours." },
+      {
+        text: "« Une rougeur c'est toujours parfaitement normal après le laser, il ne faut pas vous inquiéter. »", correct: false,
+        text_es: "« Un enrojecimiento siempre es totalmente normal tras el láser, no debes preocuparte. »", text_en: "“Redness is always perfectly normal after the laser, you mustn't worry.”",
+        why: "Une rougeur étendue n'est pas anodine. La balayer d'un revers est risqué.",
+        why_es: "Un enrojecimiento extenso no es banal. Quitarle importancia es arriesgado.",
+        why_en: "Widespread redness isn't trivial. Waving it off is risky." },
     ],
   },
   {
     id: 16,
     situation: "Un patient demande à filmer sa séance pour prouver à son tatoueur sceptique que le laser marche.",
+    situation_es: "Un paciente pide grabar su sesión para demostrar a su tatuador escéptico que el láser funciona.",
+    situation_en: "A patient asks to film their session to prove to their sceptical tattoo artist that the laser works.",
     options: [
-      { text: "« Filmez tout ce que vous voulez, c'est votre corps et c'est donc parfaitement votre droit. »", correct: false,
-        why: "Filmer dans un cabinet engage la confidentialité du personnel et d'autres patients." },
-      { text: "« C'est strictement interdit chez nous, nous sommes dans un environnement strictement médical. »", correct: false,
-        why: "Trop catégorique : avec un cadre précis, c'est négociable." },
-      { text: "« À voir avec le médecin, et seulement sur la zone, sans personne d'autre dans le champ. »", correct: true,
-        why: "Pose un cadre clair qui protège la confidentialité tout en restant ouvert." },
+      {
+        text: "« Filmez tout ce que vous voulez, c'est votre corps et c'est donc parfaitement votre droit. »", correct: false,
+        text_es: "« Graba lo que quieras, es tu cuerpo y por tanto es tu pleno derecho. »", text_en: "“Film whatever you want, it's your body so it's fully your right.”",
+        why: "Filmer dans un cabinet engage la confidentialité du personnel et d'autres patients.",
+        why_es: "Grabar en una consulta compromete la confidencialidad del personal y de otros pacientes.",
+        why_en: "Filming in a clinic affects the confidentiality of staff and other patients." },
+      {
+        text: "« C'est strictement interdit chez nous, nous sommes dans un environnement strictement médical. »", correct: false,
+        text_es: "« Está totalmente prohibido aquí, estamos en un entorno estrictamente médico. »", text_en: "“It's strictly forbidden here, we're in a strictly medical environment.”",
+        why: "Trop catégorique : avec un cadre précis, c'est négociable.",
+        why_es: "Demasiado tajante: con un marco preciso, es negociable.",
+        why_en: "Too absolute: with a clear framework, it's negotiable." },
+      {
+        text: "« À voir avec le médecin, et seulement sur la zone, sans personne d'autre dans le champ. »", correct: true,
+        text_es: "« A ver con el médico, y solo sobre la zona, sin nadie más en el encuadre. »", text_en: "“Let's check with the practitioner, and only on the area, with no one else in shot.”",
+        why: "Pose un cadre clair qui protège la confidentialité tout en restant ouvert.",
+        why_es: "Pone un marco claro que protege la confidencialidad sin cerrarse.",
+        why_en: "Sets a clear framework that protects confidentiality while staying open." },
     ],
   },
   {
     id: 17,
     situation: "Un patient mentionne dans le questionnaire qu'il prend des compléments : ail, ginkgo et oméga 3.",
+    situation_es: "Un paciente menciona en el cuestionario que toma complementos: ajo, ginkgo y omega 3.",
+    situation_en: "A patient mentions on the questionnaire that they take supplements: garlic, ginkgo and omega 3.",
     options: [
-      { text: "« Ce sont des produits parfaitement naturels, donc il n'y a aucun risque pour votre séance. »", correct: false,
-        why: "'Naturel' n'égale pas neutre : certains influencent la coagulation." },
-      { text: "« Arrêtez-les tous les trois une quinzaine de jours avant votre séance, par simple sécurité. »", correct: false,
-        why: "Consigne médicale hors de votre rôle. C'est au médecin d'évaluer un éventuel arrêt." },
-      { text: "« Je les note pour le médecin, car certains d'entre eux peuvent agir sur la coagulation. »", correct: true,
-        why: "Zone grise réelle (effet anticoagulant léger), documentée et transmise sans trancher." },
+      {
+        text: "« Ce sont des produits parfaitement naturels, donc il n'y a aucun risque pour votre séance. »", correct: false,
+        text_es: "« Son productos totalmente naturales, así que no hay ningún riesgo para tu sesión. »", text_en: "“They're completely natural products, so there's no risk to your session.”",
+        why: "'Naturel' n'égale pas neutre : certains influencent la coagulation.",
+        why_es: "'Natural' no significa neutro: algunos influyen en la coagulación.",
+        why_en: "'Natural' doesn't mean neutral: some affect blood clotting." },
+      {
+        text: "« Arrêtez-les tous les trois une quinzaine de jours avant votre séance, par simple sécurité. »", correct: false,
+        text_es: "« Déjalos los tres unos quince días antes de tu sesión, por simple seguridad. »", text_en: "“Stop all three about a fortnight before your session, just to be safe.”",
+        why: "Consigne médicale hors de votre rôle. C'est au médecin d'évaluer un éventuel arrêt.",
+        why_es: "Instrucción médica fuera de tu papel. Es el médico quien evalúa una posible suspensión.",
+        why_en: "A medical instruction outside your role. It's the practitioner who assesses stopping them." },
+      {
+        text: "« Je les note pour le médecin, car certains d'entre eux peuvent agir sur la coagulation. »", correct: true,
+        text_es: "« Los anoto para el médico, porque algunos pueden actuar sobre la coagulación. »", text_en: "“I'll note them for the practitioner, because some can affect blood clotting.”",
+        why: "Zone grise réelle (effet anticoagulant léger), documentée et transmise sans trancher.",
+        why_es: "Zona gris real (efecto anticoagulante leve), documentada y trasladada sin decidir.",
+        why_en: "A genuine grey area (mild anticoagulant effect), documented and passed on without deciding." },
     ],
   },
   {
     id: 18,
     situation: "Un patient annule à 9h sa séance de 11h pour une réunion imprévue. C'est sa première annulation.",
+    situation_es: "Un paciente cancela a las 9h su sesión de las 11h por una reunión imprevista. Es su primera cancelación.",
+    situation_en: "A patient cancels their 11am session at 9am for an unexpected meeting. It's their first cancellation.",
     options: [
-      { text: "« Des frais d'annulation s'appliquent, car vous avez prévenu à moins de vingt-quatre heures. »", correct: false,
-        why: "Trop rigide pour une première annulation justifiée. La relation client compte." },
-      { text: "« Pas de souci du tout, je vous retrouve une autre date dès que ça vous arrange de revenir. »", correct: false,
-        why: "Aucun cadre posé : le patient ignorera qu'il existe une politique pour la suite." },
-      { text: "« Je vous reprogramme. Prévenez 24h avant la prochaine fois, pour éviter d'éventuels frais. »", correct: true,
-        why: "Souple cette fois, mais pose le cadre pour l'avenir. Bon équilibre." },
+      {
+        text: "« Des frais d'annulation s'appliquent, car vous avez prévenu à moins de vingt-quatre heures. »", correct: false,
+        text_es: "« Se aplican gastos de cancelación, porque has avisado con menos de veinticuatro horas. »", text_en: "“Cancellation fees apply, since you gave less than twenty-four hours' notice.”",
+        why: "Trop rigide pour une première annulation justifiée. La relation client compte.",
+        why_es: "Demasiado rígido para una primera cancelación justificada. La relación con el cliente cuenta.",
+        why_en: "Too rigid for a justified first cancellation. The client relationship matters." },
+      {
+        text: "« Pas de souci du tout, je vous retrouve une autre date dès que ça vous arrange de revenir. »", correct: false,
+        text_es: "« Sin ningún problema, te busco otra fecha cuando te venga bien volver. »", text_en: "“No problem at all, I'll find you another date whenever suits you to come back.”",
+        why: "Aucun cadre posé : le patient ignorera qu'il existe une politique pour la suite.",
+        why_es: "No pone ningún marco: el paciente no sabrá que existe una política para el futuro.",
+        why_en: "Sets no framework: the patient won't know there's a policy for next time." },
+      {
+        text: "« Je vous reprogramme. Prévenez 24h avant la prochaine fois, pour éviter d'éventuels frais. »", correct: true,
+        text_es: "« Te reprogramo. Avisa 24h antes la próxima vez, para evitar posibles gastos. »", text_en: "“I'll reschedule you. Give 24h notice next time, to avoid possible fees.”",
+        why: "Souple cette fois, mais pose le cadre pour l'avenir. Bon équilibre.",
+        why_es: "Flexible esta vez, pero pone el marco para el futuro. Buen equilibrio.",
+        why_en: "Flexible this time, but sets the framework for the future. Good balance." },
     ],
   },
   {
     id: 19,
     situation: "Un patient a appliqué seul une crème anesthésiante achetée en ligne 30 minutes avant sa séance.",
+    situation_es: "Un paciente se ha aplicado él solo una crema anestésica comprada por internet 30 minutos antes de su sesión.",
+    situation_en: "A patient applied an online-bought numbing cream themselves 30 minutes before their session.",
     options: [
-      { text: "« Je préviens le médecin, il verra si c'est compatible ou s'il faut plutôt reporter la séance. »", correct: true,
-        why: "Transmet sans dramatiser, ouvre les options, laisse le médecin décider." },
-      { text: "« C'est parfait, cette crème va justement vous rendre toute la séance bien plus confortable. »", correct: false,
-        why: "Faux : une crème inconnue peut modifier la réponse cutanée au traitement." },
-      { text: "« Enlevez tout immédiatement avec de l'alcool, et on pourra faire votre séance juste après. »", correct: false,
-        why: "Réaction médicale autonome qui peut aggraver les choses. Pas votre décision." },
+      {
+        text: "« Je préviens le médecin, il verra si c'est compatible ou s'il faut plutôt reporter la séance. »", correct: true,
+        text_es: "« Aviso al médico, verá si es compatible o si es mejor aplazar la sesión. »", text_en: "“I'll alert the practitioner, they'll see if it's compatible or whether to postpone.”",
+        why: "Transmet sans dramatiser, ouvre les options, laisse le médecin décider.",
+        why_es: "Traslada sin dramatizar, abre las opciones, deja decidir al médico.",
+        why_en: "Passes it on without drama, opens the options, lets the practitioner decide." },
+      {
+        text: "« C'est parfait, cette crème va justement vous rendre toute la séance bien plus confortable. »", correct: false,
+        text_es: "« Perfecto, esa crema te hará justamente toda la sesión mucho más cómoda. »", text_en: "“Perfect, that cream will make the whole session much more comfortable.”",
+        why: "Faux : une crème inconnue peut modifier la réponse cutanée au traitement.",
+        why_es: "Falso: una crema desconocida puede alterar la respuesta cutánea al tratamiento.",
+        why_en: "False: an unknown cream can alter the skin's response to treatment." },
+      {
+        text: "« Enlevez tout immédiatement avec de l'alcool, et on pourra faire votre séance juste après. »", correct: false,
+        text_es: "« Quítatelo todo enseguida con alcohol, y podremos hacer tu sesión justo después. »", text_en: "“Wipe it all off with alcohol right away, and we can do your session straight after.”",
+        why: "Réaction médicale autonome qui peut aggraver les choses. Pas votre décision.",
+        why_es: "Reacción médica autónoma que puede empeorar las cosas. No es tu decisión.",
+        why_en: "An autonomous medical reaction that can make things worse. Not your decision." },
     ],
   },
   {
     id: 20,
     situation: "Un patient déçu après 3 séances trouve que son tatouage n'a presque pas bougé.",
+    situation_es: "Un paciente decepcionado tras 3 sesiones cree que su tatuaje casi no ha cambiado.",
+    situation_en: "A disappointed patient after 3 sessions feels their tattoo has barely changed.",
     options: [
-      { text: "« C'est tout à fait normal, il vous reste sans doute facilement une dizaine de séances à faire. »", correct: false,
-        why: "Avance un chiffre sans dossier et banalise la déception. À éviter." },
-      { text: "« Je comprends. Je propose au médecin de faire un point pour réévaluer votre progression. »", correct: true,
-        why: "Écoute, propose un cadre de réévaluation médicale, ne s'engage sur aucun chiffre." },
-      { text: "« Chaque peau réagit vraiment différemment, il faut juste être patient et laisser le temps. »", correct: false,
-        why: "Vrai sur le fond mais évasif : n'apporte ni écoute ni solution concrète." },
+      {
+        text: "« C'est tout à fait normal, il vous reste sans doute facilement une dizaine de séances à faire. »", correct: false,
+        text_es: "« Es totalmente normal, seguramente te quedan fácilmente una decena de sesiones. »", text_en: "“That's perfectly normal, you probably have a good ten sessions left.”",
+        why: "Avance un chiffre sans dossier et banalise la déception. À éviter.",
+        why_es: "Da una cifra sin historial y banaliza la decepción. A evitar.",
+        why_en: "Gives a number with no file and trivialises the disappointment. Avoid." },
+      {
+        text: "« Je comprends. Je propose au médecin de faire un point pour réévaluer votre progression. »", correct: true,
+        text_es: "« Lo entiendo. Propongo al médico hacer una revisión para reevaluar tu progresión. »", text_en: "“I understand. I'll suggest the practitioner do a review to reassess your progress.”",
+        why: "Écoute, propose un cadre de réévaluation médicale, ne s'engage sur aucun chiffre.",
+        why_es: "Escucha, propone un marco de reevaluación médica, no se compromete con ninguna cifra.",
+        why_en: "Listens, offers a medical reassessment, commits to no number." },
+      {
+        text: "« Chaque peau réagit vraiment différemment, il faut juste être patient et laisser le temps. »", correct: false,
+        text_es: "« Cada piel reacciona muy diferente, solo hay que tener paciencia y dar tiempo. »", text_en: "“Every skin reacts very differently, you just need patience and time.”",
+        why: "Vrai sur le fond mais évasif : n'apporte ni écoute ni solution concrète.",
+        why_es: "Cierto en el fondo pero evasivo: no aporta ni escucha ni solución concreta.",
+        why_en: "True at heart but evasive: offers neither listening nor a concrete solution." },
     ],
   },
 ];
@@ -549,363 +1241,757 @@ const MEDICAL_QUIZ = [
   {
     id: 1,
     question: "Quel type d'effet le laser PicoWay utilise-t-il pour fragmenter les pigments ?",
+    question_es: "¿Qué tipo de efecto usa el láser PicoWay para fragmentar los pigmentos?",
+    question_en: "What type of effect does the PicoWay laser use to fragment pigments?",
     options: [
-      { text: "Un effet photothermique (par la chaleur)", correct: false,
-        why: "C'est le mécanisme des anciens lasers nanoseconde. Le PicoWay agit différemment." },
-      { text: "Un effet photoacoustique (par onde de choc mécanique)", correct: true,
-        why: "Exact. Les impulsions ultra-courtes créent une onde de choc qui pulvérise les pigments sans chauffer les tissus autour." },
-      { text: "Un effet chimique qui dissout l'encre", correct: false,
-        why: "Le laser ne dissout pas l'encre, il la fragmente mécaniquement." },
+      {
+        text: "Un effet photothermique (par la chaleur)", correct: false,
+        text_es: "Un efecto fototérmico (por el calor)", text_en: "A photothermal effect (by heat)",
+        why: "C'est le mécanisme des anciens lasers nanoseconde. Le PicoWay agit différemment.",
+        why_es: "Es el mecanismo de los antiguos láseres de nanosegundo. El PicoWay actúa de otra forma.",
+        why_en: "That's the mechanism of old nanosecond lasers. The PicoWay works differently." },
+      {
+        text: "Un effet photoacoustique (par onde de choc mécanique)", correct: true,
+        text_es: "Un efecto fotoacústico (por onda de choque mecánica)", text_en: "A photoacoustic effect (by mechanical shock wave)",
+        why: "Exact. Les impulsions ultra-courtes créent une onde de choc qui pulvérise les pigments sans chauffer les tissus autour.",
+        why_es: "Exacto. Los impulsos ultracortos crean una onda de choque que pulveriza los pigmentos sin calentar los tejidos de alrededor.",
+        why_en: "Correct. The ultra-short pulses create a shock wave that shatters pigments without heating the surrounding tissue." },
+      {
+        text: "Un effet chimique qui dissout l'encre", correct: false,
+        text_es: "Un efecto químico que disuelve la tinta", text_en: "A chemical effect that dissolves the ink",
+        why: "Le laser ne dissout pas l'encre, il la fragmente mécaniquement.",
+        why_es: "El láser no disuelve la tinta, la fragmenta mecánicamente.",
+        why_en: "The laser doesn't dissolve the ink, it fragments it mechanically." },
     ],
   },
   {
     id: 2,
     question: "Une picoseconde correspond à :",
+    question_es: "Un picosegundo corresponde a:",
+    question_en: "A picosecond corresponds to:",
     options: [
-      { text: "Un millième de seconde", correct: false,
-        why: "Ça, c'est une milliseconde. La picoseconde est bien plus courte." },
-      { text: "Un trillionième de seconde (10⁻¹² s)", correct: true,
-        why: "Exact. Le PicoWay tire entre 250 et 450 picosecondes selon la longueur d'onde." },
-      { text: "Un millionième de seconde", correct: false,
-        why: "Ça, c'est une microseconde." },
+      {
+        text: "Un millième de seconde", correct: false,
+        text_es: "Una milésima de segundo", text_en: "A thousandth of a second",
+        why: "Ça, c'est une milliseconde. La picoseconde est bien plus courte.",
+        why_es: "Eso es un milisegundo. El picosegundo es mucho más corto.",
+        why_en: "That's a millisecond. A picosecond is much shorter." },
+      {
+        text: "Un trillionième de seconde (10⁻¹² s)", correct: true,
+        text_es: "Una billonésima de segundo (10⁻¹² s)", text_en: "A trillionth of a second (10⁻¹² s)",
+        why: "Exact. Le PicoWay tire entre 250 et 450 picosecondes selon la longueur d'onde.",
+        why_es: "Exacto. El PicoWay dispara entre 250 y 450 picosegundos según la longitud de onda.",
+        why_en: "Correct. The PicoWay fires between 250 and 450 picoseconds depending on the wavelength." },
+      {
+        text: "Un millionième de seconde", correct: false,
+        text_es: "Una millonésima de segundo", text_en: "A millionth of a second",
+        why: "Ça, c'est une microseconde.",
+        why_es: "Eso es un microsegundo.",
+        why_en: "That's a microsecond." },
     ],
   },
   {
     id: 3,
     question: "Quelle longueur d'onde est la plus adaptée pour une encre noire ?",
+    question_es: "¿Qué longitud de onda es la más adecuada para una tinta negra?",
+    question_en: "Which wavelength is best suited to black ink?",
     options: [
-      { text: "532 nm", correct: false,
-        why: "Le 532 nm cible plutôt le rouge, le jaune et l'orange." },
-      { text: "1064 nm", correct: true,
-        why: "Exact. Le 1064 nm cible le noir, le marron, le bleu et le violet, et convient à tous les phototypes." },
-      { text: "730 nm", correct: false,
-        why: "Le 730 nm est optimisé pour le vert et le bleu." },
+      {
+        text: "532 nm", correct: false,
+        text_es: "532 nm", text_en: "532 nm",
+        why: "Le 532 nm cible plutôt le rouge, le jaune et l'orange.",
+        why_es: "El 532 nm apunta más bien al rojo, el amarillo y el naranja.",
+        why_en: "532 nm targets red, yellow and orange." },
+      {
+        text: "1064 nm", correct: true,
+        text_es: "1064 nm", text_en: "1064 nm",
+        why: "Exact. Le 1064 nm cible le noir, le marron, le bleu et le violet, et convient à tous les phototypes.",
+        why_es: "Exacto. El 1064 nm apunta al negro, marrón, azul y violeta, y sirve para todos los fototipos.",
+        why_en: "Correct. 1064 nm targets black, brown, blue and purple, and suits all phototypes." },
+      {
+        text: "730 nm", correct: false,
+        text_es: "730 nm", text_en: "730 nm",
+        why: "Le 730 nm est optimisé pour le vert et le bleu.",
+        why_es: "El 730 nm está optimizado para el verde y el azul.",
+        why_en: "730 nm is optimised for green and blue." },
     ],
   },
   {
     id: 4,
     question: "Pour quelles couleurs d'encre utilise-t-on le 532 nm ?",
+    question_es: "¿Para qué colores de tinta se usa el 532 nm?",
+    question_en: "For which ink colours is 532 nm used?",
     options: [
-      { text: "Noir et bleu foncé", correct: false,
-        why: "Le noir et le bleu foncé relèvent du 1064 nm." },
-      { text: "Vert et bleu uniquement", correct: false,
-        why: "Le vert et le bleu sont mieux traités par le 730 nm." },
-      { text: "Rouge, jaune et orange", correct: true,
-        why: "Exact. Le 532 nm est la longueur d'onde des couleurs chaudes." },
+      {
+        text: "Noir et bleu foncé", correct: false,
+        text_es: "Negro y azul oscuro", text_en: "Black and dark blue",
+        why: "Le noir et le bleu foncé relèvent du 1064 nm.",
+        why_es: "El negro y el azul oscuro corresponden al 1064 nm.",
+        why_en: "Black and dark blue are for 1064 nm." },
+      {
+        text: "Vert et bleu uniquement", correct: false,
+        text_es: "Solo verde y azul", text_en: "Green and blue only",
+        why: "Le vert et le bleu sont mieux traités par le 730 nm.",
+        why_es: "El verde y el azul se tratan mejor con el 730 nm.",
+        why_en: "Green and blue are better treated with 730 nm." },
+      {
+        text: "Rouge, jaune et orange", correct: true,
+        text_es: "Rojo, amarillo y naranja", text_en: "Red, yellow and orange",
+        why: "Exact. Le 532 nm est la longueur d'onde des couleurs chaudes.",
+        why_es: "Exacto. El 532 nm es la longitud de onda de los colores cálidos.",
+        why_en: "Correct. 532 nm is the wavelength for warm colours." },
     ],
   },
   {
     id: 5,
     question: "Combien de phototypes compte l'échelle de Fitzpatrick ?",
+    question_es: "¿Cuántos fototipos tiene la escala de Fitzpatrick?",
+    question_en: "How many phototypes does the Fitzpatrick scale have?",
     options: [
-      { text: "4", correct: false,
-        why: "Non, il y en a davantage." },
-      { text: "8", correct: false,
-        why: "Non, l'échelle s'arrête à VI." },
-      { text: "6", correct: true,
-        why: "Exact. De I (très claire, brûle toujours) à VI (très foncée, ne brûle pas)." },
+      {
+        text: "4", correct: false,
+        text_es: "4", text_en: "4",
+        why: "Non, il y en a davantage.",
+        why_es: "No, hay más.",
+        why_en: "No, there are more." },
+      {
+        text: "8", correct: false,
+        text_es: "8", text_en: "8",
+        why: "Non, l'échelle s'arrête à VI.",
+        why_es: "No, la escala llega hasta VI.",
+        why_en: "No, the scale stops at VI." },
+      {
+        text: "6", correct: true,
+        text_es: "6", text_en: "6",
+        why: "Exact. De I (très claire, brûle toujours) à VI (très foncée, ne brûle pas).",
+        why_es: "Exacto. De I (muy clara, siempre se quema) a VI (muy oscura, no se quema).",
+        why_en: "Correct. From I (very fair, always burns) to VI (very dark, never burns)." },
     ],
   },
   {
     id: 6,
     question: "Pourquoi les phototypes foncés demandent-ils plus de précautions ?",
+    question_es: "¿Por qué los fototipos oscuros requieren más precauciones?",
+    question_en: "Why do dark phototypes require more precautions?",
     options: [
-      { text: "Parce que leur peau contient plus de mélanine, qui absorbe aussi la lumière du laser", correct: true,
-        why: "Exact. La mélanine entre en compétition avec l'encre pour absorber le laser, d'où le risque de dépigmentation." },
-      { text: "Parce que leur peau est plus épaisse", correct: false,
-        why: "Ce n'est pas une question d'épaisseur." },
-      { text: "Parce qu'ils ressentent moins la douleur", correct: false,
-        why: "Aucun rapport avec la sensibilité à la douleur." },
+      {
+        text: "Parce que leur peau contient plus de mélanine, qui absorbe aussi la lumière du laser", correct: true,
+        text_es: "Porque su piel contiene más melanina, que también absorbe la luz del láser", text_en: "Because their skin contains more melanin, which also absorbs the laser light",
+        why: "Exact. La mélanine entre en compétition avec l'encre pour absorber le laser, d'où le risque de dépigmentation.",
+        why_es: "Exacto. La melanina compite con la tinta por absorber el láser, de ahí el riesgo de despigmentación.",
+        why_en: "Correct. Melanin competes with the ink to absorb the laser, hence the risk of depigmentation." },
+      {
+        text: "Parce que leur peau est plus épaisse", correct: false,
+        text_es: "Porque su piel es más gruesa", text_en: "Because their skin is thicker",
+        why: "Ce n'est pas une question d'épaisseur.",
+        why_es: "No es cuestión de grosor.",
+        why_en: "It's not about thickness." },
+      {
+        text: "Parce qu'ils ressentent moins la douleur", correct: false,
+        text_es: "Porque sienten menos el dolor", text_en: "Because they feel less pain",
+        why: "Aucun rapport avec la sensibilité à la douleur.",
+        why_es: "No tiene relación con la sensibilidad al dolor.",
+        why_en: "Nothing to do with pain sensitivity." },
     ],
   },
   {
     id: 7,
     question: "Quel est le délai minimum recommandé entre deux séances de détatouage ?",
+    question_es: "¿Cuál es el plazo mínimo recomendado entre dos sesiones?",
+    question_en: "What is the minimum recommended interval between two sessions?",
     options: [
-      { text: "6 à 8 semaines", correct: true,
-        why: "Exact. C'est le temps nécessaire pour que les macrophages évacuent les pigments via le système lymphatique." },
-      { text: "2 à 3 semaines", correct: false,
-        why: "Trop court. Le corps n'a pas le temps d'évacuer les pigments fragmentés." },
-      { text: "6 mois", correct: false,
-        why: "Trop long, ce n'est pas nécessaire." },
+      {
+        text: "6 à 8 semaines", correct: true,
+        text_es: "6 a 8 semanas", text_en: "6 to 8 weeks",
+        why: "Exact. C'est le temps nécessaire pour que les macrophages évacuent les pigments via le système lymphatique.",
+        why_es: "Exacto. Es el tiempo que necesitan los macrófagos para evacuar los pigmentos por el sistema linfático.",
+        why_en: "Correct. It's the time macrophages need to clear the pigments via the lymphatic system." },
+      {
+        text: "2 à 3 semaines", correct: false,
+        text_es: "2 a 3 semanas", text_en: "2 to 3 weeks",
+        why: "Trop court. Le corps n'a pas le temps d'évacuer les pigments fragmentés.",
+        why_es: "Demasiado corto. El cuerpo no tiene tiempo de evacuar los pigmentos fragmentados.",
+        why_en: "Too short. The body doesn't have time to clear the fragmented pigments." },
+      {
+        text: "6 mois", correct: false,
+        text_es: "6 meses", text_en: "6 months",
+        why: "Trop long, ce n'est pas nécessaire.",
+        why_es: "Demasiado largo, no es necesario.",
+        why_en: "Too long, it's not necessary." },
     ],
   },
   {
     id: 8,
-    question: "Qu'est-ce que le « givrage » observé pendant le traitement ?",
+    question: "Qu'est-ce que le « frosting » observé pendant le traitement ?",
+    question_es: "¿Qué es el «frosting» que se observa durante el tratamiento?",
+    question_en: "What is the “frosting” seen during treatment?",
     options: [
-      { text: "Un signe de brûlure qu'il faut éviter", correct: false,
-        why: "Non, le givrage est recherché : c'est le bon critère d'évaluation clinique." },
-      { text: "Un blanchiment instantané de la zone, signe que la fluence est adaptée", correct: true,
-        why: "Exact. C'est un micro-dégagement de gaz lié à la fragmentation des pigments. Le médecin le recherche comme repère." },
-      { text: "Une réaction allergique à l'encre", correct: false,
-        why: "Le givrage n'a rien à voir avec une allergie." },
+      {
+        text: "Un signe de brûlure qu'il faut éviter", correct: false,
+        text_es: "Un signo de quemadura que hay que evitar", text_en: "A sign of a burn to be avoided",
+        why: "Non, le frosting est recherché : c'est le bon critère d'évaluation clinique.",
+        why_es: "No, el frosting se busca: es el buen criterio de evaluación clínica.",
+        why_en: "No, frosting is wanted: it's the right clinical marker." },
+      {
+        text: "Un blanchiment instantané de la zone, signe que la fluence est adaptée", correct: true,
+        text_es: "Un blanqueamiento instantáneo de la zona, señal de que la fluencia es adecuada", text_en: "An instant whitening of the area, a sign the fluence is right",
+        why: "Exact. C'est un micro-dégagement de gaz lié à la fragmentation des pigments. Le médecin le recherche comme repère.",
+        why_es: "Exacto. Es un micro-desprendimiento de gas ligado a la fragmentación de los pigmentos. El médico lo busca como referencia.",
+        why_en: "Correct. It's a micro-release of gas from the pigment fragmentation. The practitioner looks for it as a marker." },
+      {
+        text: "Une réaction allergique à l'encre", correct: false,
+        text_es: "Una reacción alérgica a la tinta", text_en: "An allergic reaction to the ink",
+        why: "Le frosting n'a rien à voir avec une allergie.",
+        why_es: "El frosting no tiene nada que ver con una alergia.",
+        why_en: "Frosting has nothing to do with an allergy." },
     ],
   },
   {
     id: 9,
     question: "Quelles cellules du corps évacuent les pigments fragmentés par le laser ?",
+    question_es: "¿Qué células del cuerpo evacuan los pigmentos fragmentados por el láser?",
+    question_en: "Which cells in the body clear the pigments fragmented by the laser?",
     options: [
-      { text: "Les globules rouges", correct: false,
-        why: "Les globules rouges transportent l'oxygène, pas les déchets pigmentaires." },
-      { text: "Les macrophages", correct: true,
-        why: "Exact. Ces cellules « éboueurs » ingèrent les fragments et les évacuent par le système lymphatique." },
-      { text: "Les plaquettes", correct: false,
-        why: "Les plaquettes servent à la coagulation." },
+      {
+        text: "Les globules rouges", correct: false,
+        text_es: "Los glóbulos rojos", text_en: "Red blood cells",
+        why: "Les globules rouges transportent l'oxygène, pas les déchets pigmentaires.",
+        why_es: "Los glóbulos rojos transportan oxígeno, no residuos de pigmento.",
+        why_en: "Red blood cells carry oxygen, not pigment waste." },
+      {
+        text: "Les macrophages", correct: true,
+        text_es: "Los macrófagos", text_en: "Macrophages",
+        why: "Exact. Ces cellules « éboueurs » ingèrent les fragments et les évacuent par le système lymphatique.",
+        why_es: "Exacto. Estas células «basureras» ingieren los fragmentos y los evacúan por el sistema linfático.",
+        why_en: "Correct. These 'scavenger' cells ingest the fragments and clear them via the lymphatic system." },
+      {
+        text: "Les plaquettes", correct: false,
+        text_es: "Las plaquetas", text_en: "Platelets",
+        why: "Les plaquettes servent à la coagulation.",
+        why_es: "Las plaquetas sirven para la coagulación.",
+        why_en: "Platelets are for clotting." },
     ],
   },
   {
     id: 10,
     question: "Quelle est la principale différence entre l'effet photothermique et photoacoustique ?",
+    question_es: "¿Cuál es la principal diferencia entre el efecto fototérmico y el fotoacústico?",
+    question_en: "What is the main difference between the photothermal and photoacoustic effects?",
     options: [
-      { text: "Le photoacoustique génère beaucoup plus de chaleur", correct: false,
-        why: "C'est l'inverse : le photoacoustique génère moins de chaleur." },
-      { text: "Le photoacoustique fragmente par onde de choc avec très peu de chaleur résiduelle", correct: true,
-        why: "Exact. Moins de chaleur signifie moins de risque de cicatrices et un meilleur confort." },
-      { text: "Il n'y a aucune différence pratique", correct: false,
-        why: "La différence est majeure en termes de sécurité et d'efficacité." },
+      {
+        text: "Le photoacoustique génère beaucoup plus de chaleur", correct: false,
+        text_es: "El fotoacústico genera mucho más calor", text_en: "The photoacoustic one generates much more heat",
+        why: "C'est l'inverse : le photoacoustique génère moins de chaleur.",
+        why_es: "Es al revés: el fotoacústico genera menos calor.",
+        why_en: "It's the opposite: photoacoustic generates less heat." },
+      {
+        text: "Le photoacoustique fragmente par onde de choc avec très peu de chaleur résiduelle", correct: true,
+        text_es: "El fotoacústico fragmenta por onda de choque con muy poco calor residual", text_en: "The photoacoustic one fragments by shock wave with very little residual heat",
+        why: "Exact. Moins de chaleur signifie moins de risque de cicatrices et un meilleur confort.",
+        why_es: "Exacto. Menos calor significa menos riesgo de cicatrices y más confort.",
+        why_en: "Correct. Less heat means less scarring risk and more comfort." },
+      {
+        text: "Il n'y a aucune différence pratique", correct: false,
+        text_es: "No hay ninguna diferencia práctica", text_en: "There's no practical difference",
+        why: "La différence est majeure en termes de sécurité et d'efficacité.",
+        why_es: "La diferencia es enorme en seguridad y eficacia.",
+        why_en: "The difference is major for safety and effectiveness." },
     ],
   },
   {
     id: 11,
     question: "La fluence se mesure en :",
+    question_es: "La fluencia se mide en:",
+    question_en: "Fluence is measured in:",
     options: [
-      { text: "Joules par cm² (J/cm²)", correct: true,
-        why: "Exact. La fluence est l'énergie délivrée par unité de surface." },
-      { text: "Millimètres (mm)", correct: false,
-        why: "Le millimètre mesure la taille du spot, pas la fluence." },
-      { text: "Hertz (Hz)", correct: false,
-        why: "Le hertz mesure la fréquence des impulsions." },
+      {
+        text: "Joules par cm² (J/cm²)", correct: true,
+        text_es: "Julios por cm² (J/cm²)", text_en: "Joules per cm² (J/cm²)",
+        why: "Exact. La fluence est l'énergie délivrée par unité de surface.",
+        why_es: "Exacto. La fluencia es la energía entregada por unidad de superficie.",
+        why_en: "Correct. Fluence is the energy delivered per unit area." },
+      {
+        text: "Millimètres (mm)", correct: false,
+        text_es: "Milímetros (mm)", text_en: "Millimetres (mm)",
+        why: "Le millimètre mesure la taille du spot, pas la fluence.",
+        why_es: "El milímetro mide el tamaño del spot, no la fluencia.",
+        why_en: "The millimetre measures spot size, not fluence." },
+      {
+        text: "Hertz (Hz)", correct: false,
+        text_es: "Hercios (Hz)", text_en: "Hertz (Hz)",
+        why: "Le hertz mesure la fréquence des impulsions.",
+        why_es: "El hercio mide la frecuencia de los impulsos.",
+        why_en: "Hertz measures the pulse frequency." },
     ],
   },
   {
     id: 12,
     question: "Que désigne la « taille du spot » ?",
+    question_es: "¿Qué designa el «tamaño del spot»?",
+    question_en: "What does “spot size” refer to?",
     options: [
-      { text: "La durée de l'impulsion", correct: false,
-        why: "La durée se mesure en picosecondes, c'est un autre paramètre." },
-      { text: "Le nombre de tirs par seconde", correct: false,
-        why: "Ça, c'est la fréquence." },
-      { text: "Le diamètre du faisceau laser, en millimètres", correct: true,
-        why: "Exact. Un grand spot pénètre plus profondément, un petit reste plus superficiel." },
+      {
+        text: "La durée de l'impulsion", correct: false,
+        text_es: "La duración del impulso", text_en: "The pulse duration",
+        why: "La durée se mesure en picosecondes, c'est un autre paramètre.",
+        why_es: "La duración se mide en picosegundos, es otro parámetro.",
+        why_en: "Duration is measured in picoseconds, a different parameter." },
+      {
+        text: "Le nombre de tirs par seconde", correct: false,
+        text_es: "El número de disparos por segundo", text_en: "The number of shots per second",
+        why: "Ça, c'est la fréquence.",
+        why_es: "Eso es la frecuencia.",
+        why_en: "That's the frequency." },
+      {
+        text: "Le diamètre du faisceau laser, en millimètres", correct: true,
+        text_es: "El diámetro del haz láser, en milímetros", text_en: "The diameter of the laser beam, in millimetres",
+        why: "Exact. Un grand spot pénètre plus profondément, un petit reste plus superficiel.",
+        why_es: "Exacto. Un spot grande penetra más profundo, uno pequeño queda más superficial.",
+        why_en: "Correct. A large spot penetrates deeper, a small one stays more superficial." },
     ],
   },
   {
     id: 13,
     question: "Un grand spot, par rapport à un petit spot :",
+    question_es: "Un spot grande, comparado con uno pequeño:",
+    question_en: "A large spot, compared to a small one:",
     options: [
-      { text: "Pénètre moins profondément", correct: false,
-        why: "C'est l'inverse : le petit spot est plus superficiel." },
-      { text: "N'a aucun effet sur la profondeur", correct: false,
-        why: "La taille du spot influence directement la profondeur de pénétration." },
-      { text: "Pénètre plus profondément dans la peau", correct: true,
-        why: "Exact. Les grands spots sont moins dispersés, donc atteignent des pigments plus profonds." },
+      {
+        text: "Pénètre moins profondément", correct: false,
+        text_es: "Penetra menos profundo", text_en: "Penetrates less deeply",
+        why: "C'est l'inverse : le petit spot est plus superficiel.",
+        why_es: "Es al revés: el spot pequeño es más superficial.",
+        why_en: "It's the opposite: the small spot is more superficial." },
+      {
+        text: "N'a aucun effet sur la profondeur", correct: false,
+        text_es: "No tiene ningún efecto sobre la profundidad", text_en: "Has no effect on depth",
+        why: "La taille du spot influence directement la profondeur de pénétration.",
+        why_es: "El tamaño del spot influye directamente en la profundidad de penetración.",
+        why_en: "Spot size directly affects penetration depth." },
+      {
+        text: "Pénètre plus profondément dans la peau", correct: true,
+        text_es: "Penetra más profundo en la piel", text_en: "Penetrates deeper into the skin",
+        why: "Exact. Les grands spots sont moins dispersés, donc atteignent des pigments plus profonds.",
+        why_es: "Exacto. Los spots grandes se dispersan menos, así que alcanzan pigmentos más profundos.",
+        why_en: "Correct. Large spots scatter less, so they reach deeper pigments." },
     ],
   },
   {
     id: 14,
     question: "Quel type de tatouage demande généralement le plus de séances ?",
+    question_es: "¿Qué tipo de tatuaje suele requerir más sesiones?",
+    question_en: "Which type of tattoo usually needs the most sessions?",
     options: [
-      { text: "Un tatouage amateur", correct: false,
-        why: "Les tatouages amateurs ont peu d'encre, souvent moins de séances." },
-      { text: "Un tatouage traumatique", correct: false,
-        why: "Les tatouages traumatiques demandent en général 2 à 6 séances." },
-      { text: "Un tatouage professionnel", correct: true,
-        why: "Exact. L'encre est dense et déposée profondément et régulièrement, d'où plus de 6 à 12 séances possibles." },
+      {
+        text: "Un tatouage amateur", correct: false,
+        text_es: "Un tatuaje amateur", text_en: "An amateur tattoo",
+        why: "Les tatouages amateurs ont peu d'encre, souvent moins de séances.",
+        why_es: "Los tatuajes amateur tienen poca tinta, a menudo menos sesiones.",
+        why_en: "Amateur tattoos have little ink, often fewer sessions." },
+      {
+        text: "Un tatouage traumatique", correct: false,
+        text_es: "Un tatuaje traumático", text_en: "A traumatic tattoo",
+        why: "Les tatouages traumatiques demandent en général 2 à 6 séances.",
+        why_es: "Los tatuajes traumáticos suelen requerir de 2 a 6 sesiones.",
+        why_en: "Traumatic tattoos usually need 2 to 6 sessions." },
+      {
+        text: "Un tatouage professionnel", correct: true,
+        text_es: "Un tatuaje profesional", text_en: "A professional tattoo",
+        why: "Exact. L'encre est dense et déposée profondément et régulièrement, d'où plus de 6 à 12 séances possibles.",
+        why_es: "Exacto. La tinta es densa y está depositada profunda y regularmente, de ahí más de 6 a 12 sesiones posibles.",
+        why_en: "Correct. The ink is dense and deposited deeply and evenly, hence 6 to 12+ possible sessions." },
     ],
   },
   {
     id: 15,
     question: "L'hypopigmentation est :",
+    question_es: "La hipopigmentación es:",
+    question_en: "Hypopigmentation is:",
     options: [
-      { text: "Un assombrissement de la peau", correct: false,
-        why: "Ça, c'est l'hyperpigmentation." },
-      { text: "Un éclaircissement de la peau, parfois irréversible", correct: true,
-        why: "Exact. La peau perd de la mélanine. Plus fréquent sur le 532 nm et en cas de refroidissement excessif." },
-      { text: "Une cloque remplie de liquide", correct: false,
-        why: "Une cloque est une phlyctène, c'est autre chose." },
+      {
+        text: "Un assombrissement de la peau", correct: false,
+        text_es: "Un oscurecimiento de la piel", text_en: "A darkening of the skin",
+        why: "Ça, c'est l'hyperpigmentation.",
+        why_es: "Eso es la hiperpigmentación.",
+        why_en: "That's hyperpigmentation." },
+      {
+        text: "Un éclaircissement de la peau, parfois irréversible", correct: true,
+        text_es: "Un aclaramiento de la piel, a veces irreversible", text_en: "A lightening of the skin, sometimes irreversible",
+        why: "Exact. La peau perd de la mélanine. Plus fréquent sur le 532 nm et en cas de refroidissement excessif.",
+        why_es: "Exacto. La piel pierde melanina. Más frecuente con el 532 nm y con enfriamiento excesivo.",
+        why_en: "Correct. The skin loses melanin. More common with 532 nm and excessive cooling." },
+      {
+        text: "Une cloque remplie de liquide", correct: false,
+        text_es: "Una ampolla llena de líquido", text_en: "A fluid-filled blister",
+        why: "Une cloque est une phlyctène, c'est autre chose.",
+        why_es: "Una ampolla es una flictena, es otra cosa.",
+        why_en: "A blister is a phlyctène, that's something else." },
     ],
   },
   {
     id: 16,
     question: "L'hyperpigmentation post-traitement est plus fréquente :",
+    question_es: "La hiperpigmentación postratamiento es más frecuente:",
+    question_en: "Post-treatment hyperpigmentation is more common:",
     options: [
-      { text: "Sur les phototypes très clairs (I et II)", correct: false,
-        why: "Non, le risque est inverse." },
-      { text: "Uniquement sur les tatouages colorés", correct: false,
-        why: "L'hyperpigmentation dépend du phototype et du soleil, pas de la couleur de l'encre." },
-      { text: "Sur les phototypes foncés et en cas d'exposition solaire", correct: true,
-        why: "Exact. C'est pourquoi la protection solaire SPF 50 est essentielle, surtout sur peaux mates." },
+      {
+        text: "Sur les phototypes très clairs (I et II)", correct: false,
+        text_es: "En los fototipos muy claros (I y II)", text_en: "On very fair phototypes (I and II)",
+        why: "Non, le risque est inverse.",
+        why_es: "No, el riesgo es el inverso.",
+        why_en: "No, the risk is the reverse." },
+      {
+        text: "Uniquement sur les tatouages colorés", correct: false,
+        text_es: "Únicamente en los tatuajes de color", text_en: "Only on coloured tattoos",
+        why: "L'hyperpigmentation dépend du phototype et du soleil, pas de la couleur de l'encre.",
+        why_es: "La hiperpigmentación depende del fototipo y del sol, no del color de la tinta.",
+        why_en: "Hyperpigmentation depends on phototype and sun, not ink colour." },
+      {
+        text: "Sur les phototypes foncés et en cas d'exposition solaire", correct: true,
+        text_es: "En los fototipos oscuros y con exposición solar", text_en: "On dark phototypes and with sun exposure",
+        why: "Exact. C'est pourquoi la protection solaire SPF 50 est essentielle, surtout sur peaux mates.",
+        why_es: "Exacto. Por eso la protección solar SPF 50 es esencial, sobre todo en pieles morenas.",
+        why_en: "Correct. That's why SPF 50 sun protection is essential, especially on darker skin." },
     ],
   },
   {
     id: 17,
     question: "Une phlyctène, c'est :",
+    question_es: "Una flictena es:",
+    question_en: "A phlyctène (blister) is:",
     options: [
-      { text: "Une cloque, bulle de liquide sous l'épiderme", correct: true,
-        why: "Exact. Elle peut apparaître 24 à 48h après la séance. À ne jamais percer soi-même." },
-      { text: "Une rougeur passagère", correct: false,
-        why: "La rougeur s'appelle érythème." },
-      { text: "Une croûte sèche", correct: false,
-        why: "Une croûte est un stade différent de la cicatrisation." },
+      {
+        text: "Une cloque, bulle de liquide sous l'épiderme", correct: true,
+        text_es: "Una ampolla, burbuja de líquido bajo la epidermis", text_en: "A blister, a bubble of fluid under the epidermis",
+        why: "Exact. Elle peut apparaître 24 à 48h après la séance. À ne jamais percer soi-même.",
+        why_es: "Exacto. Puede aparecer de 24 a 48h tras la sesión. No pincharla nunca uno mismo.",
+        why_en: "Correct. It can appear 24 to 48h after the session. Never pop it yourself." },
+      {
+        text: "Une rougeur passagère", correct: false,
+        text_es: "Un enrojecimiento pasajero", text_en: "Temporary redness",
+        why: "La rougeur s'appelle érythème.",
+        why_es: "El enrojecimiento se llama eritema.",
+        why_en: "Redness is called erythema." },
+      {
+        text: "Une croûte sèche", correct: false,
+        text_es: "Una costra seca", text_en: "A dry scab",
+        why: "Une croûte est un stade différent de la cicatrisation.",
+        why_es: "Una costra es una etapa distinta de la cicatrización.",
+        why_en: "A scab is a different stage of healing." },
     ],
   },
   {
     id: 18,
     question: "Quel est le temps de cicatrisation moyen après une séance ?",
+    question_es: "¿Cuál es el tiempo medio de cicatrización tras una sesión?",
+    question_en: "What is the average healing time after a session?",
     options: [
-      { text: "1 à 2 jours", correct: false,
-        why: "Trop court pour une cicatrisation complète." },
-      { text: "7 à 10 jours", correct: true,
-        why: "Exact. Variable selon la zone, la surface et le respect des soins post-séance." },
-      { text: "1 mois", correct: false,
-        why: "Plus long que la réalité dans la majorité des cas." },
+      {
+        text: "1 à 2 jours", correct: false,
+        text_es: "1 a 2 días", text_en: "1 to 2 days",
+        why: "Trop court pour une cicatrisation complète.",
+        why_es: "Demasiado corto para una cicatrización completa.",
+        why_en: "Too short for full healing." },
+      {
+        text: "7 à 10 jours", correct: true,
+        text_es: "7 a 10 días", text_en: "7 to 10 days",
+        why: "Exact. Variable selon la zone, la surface et le respect des soins post-séance.",
+        why_es: "Exacto. Variable según la zona, la superficie y el respeto de los cuidados posteriores.",
+        why_en: "Correct. Varies with area, surface and following the aftercare." },
+      {
+        text: "1 mois", correct: false,
+        text_es: "1 mes", text_en: "1 month",
+        why: "Plus long que la réalité dans la majorité des cas.",
+        why_es: "Más largo que la realidad en la mayoría de los casos.",
+        why_en: "Longer than reality in most cases." },
     ],
   },
   {
     id: 19,
     question: "Pendant les 72 premières heures, quel soin est recommandé en protocole standard ?",
+    question_es: "Durante las primeras 72 horas, ¿qué cuidado se recomienda en el protocolo estándar?",
+    question_en: "During the first 72 hours, what care is recommended in the standard protocol?",
     options: [
-      { text: "Exposer la zone à l'air libre sans rien appliquer", correct: false,
-        why: "Non, la cicatrisation en milieu humide est préférée." },
-      { text: "Vaseline en couche épaisse sous un pansement, renouvelée chaque jour", correct: true,
-        why: "Exact. Le milieu humide occlusif accélère la cicatrisation et limite les croûtes." },
-      { text: "Désinfecter à l'alcool plusieurs fois par jour", correct: false,
-        why: "L'alcool est trop agressif et assèche la plaie." },
+      {
+        text: "Exposer la zone à l'air libre sans rien appliquer", correct: false,
+        text_es: "Exponer la zona al aire libre sin aplicar nada", text_en: "Leaving the area open to the air with nothing applied",
+        why: "Non, la cicatrisation en milieu humide est préférée.",
+        why_es: "No, se prefiere la cicatrización en medio húmedo.",
+        why_en: "No, moist healing is preferred." },
+      {
+        text: "Vaseline en couche épaisse sous un pansement, renouvelée chaque jour", correct: true,
+        text_es: "Vaselina en capa gruesa bajo un apósito, renovada cada día", text_en: "Petroleum jelly in a thick layer under a dressing, renewed daily",
+        why: "Exact. Le milieu humide occlusif accélère la cicatrisation et limite les croûtes.",
+        why_es: "Exacto. El medio húmedo oclusivo acelera la cicatrización y limita las costras.",
+        why_en: "Correct. The occlusive moist environment speeds healing and limits scabs." },
+      {
+        text: "Désinfecter à l'alcool plusieurs fois par jour", correct: false,
+        text_es: "Desinfectar con alcohol varias veces al día", text_en: "Disinfecting with alcohol several times a day",
+        why: "L'alcool est trop agressif et assèche la plaie.",
+        why_es: "El alcohol es demasiado agresivo y reseca la herida.",
+        why_en: "Alcohol is too harsh and dries out the wound." },
     ],
   },
   {
     id: 20,
     question: "Pourquoi proscrit-on le film alimentaire sur une zone traitée ?",
+    question_es: "¿Por qué se prohíbe el film transparente sobre una zona tratada?",
+    question_en: "Why is cling film banned on a treated area?",
     options: [
-      { text: "Parce qu'il favorise la sudation et les irritations", correct: true,
-        why: "Exact. Il crée un environnement non respirant propice aux macérations, surtout par temps chaud." },
-      { text: "Parce qu'il colle à la peau", correct: false,
-        why: "Ce n'est pas la raison principale." },
-      { text: "Parce qu'il bloque l'action du laser", correct: false,
-        why: "Le film s'applique après la séance, il n'interagit pas avec le laser." },
+      {
+        text: "Parce qu'il favorise la sudation et les irritations", correct: true,
+        text_es: "Porque favorece la sudoración y las irritaciones", text_en: "Because it promotes sweating and irritation",
+        why: "Exact. Il crée un environnement non respirant propice aux macérations, surtout par temps chaud.",
+        why_es: "Exacto. Crea un ambiente no transpirable propicio a la maceración, sobre todo con calor.",
+        why_en: "Correct. It creates a non-breathable environment prone to maceration, especially in heat." },
+      {
+        text: "Parce qu'il colle à la peau", correct: false,
+        text_es: "Porque se pega a la piel", text_en: "Because it sticks to the skin",
+        why: "Ce n'est pas la raison principale.",
+        why_es: "No es la razón principal.",
+        why_en: "That's not the main reason." },
+      {
+        text: "Parce qu'il bloque l'action du laser", correct: false,
+        text_es: "Porque bloquea la acción del láser", text_en: "Because it blocks the laser's action",
+        why: "Le film s'applique après la séance, il n'interagit pas avec le laser.",
+        why_es: "El film se aplica después de la sesión, no interactúa con el láser.",
+        why_en: "Cling film is applied after the session, it doesn't interact with the laser." },
     ],
   },
   {
     id: 21,
     question: "Quelle est la conduite à tenir face à une phlyctène (cloque) ?",
+    question_es: "¿Cuál es la conducta ante una flictena (ampolla)?",
+    question_en: "What is the right course of action for a blister?",
     options: [
-      { text: "La percer avec une aiguille stérile", correct: false,
-        why: "Jamais de soi-même. L'évacuation ne se fait que sur indication du praticien." },
-      { text: "Ne pas la percer et prévenir le praticien si elle est volumineuse ou douloureuse", correct: true,
-        why: "Exact. Percer expose à l'infection. On protège et on transmet au médecin." },
-      { text: "Appliquer de l'alcool dessus", correct: false,
-        why: "L'alcool est inadapté sur une plaie." },
+      {
+        text: "La percer avec une aiguille stérile", correct: false,
+        text_es: "Pincharla con una aguja estéril", text_en: "Popping it with a sterile needle",
+        why: "Jamais de soi-même. L'évacuation ne se fait que sur indication du praticien.",
+        why_es: "Nunca por cuenta propia. La evacuación solo se hace por indicación del médico.",
+        why_en: "Never on your own. Draining is only done on the practitioner's instruction." },
+      {
+        text: "Ne pas la percer et prévenir le praticien si elle est volumineuse ou douloureuse", correct: true,
+        text_es: "No pincharla y avisar al médico si es voluminosa o dolorosa", text_en: "Not popping it and alerting the practitioner if it's large or painful",
+        why: "Exact. Percer expose à l'infection. On protège et on transmet au médecin.",
+        why_es: "Exacto. Pincharla expone a la infección. Se protege y se traslada al médico.",
+        why_en: "Correct. Popping it risks infection. Protect it and pass it to the practitioner." },
+      {
+        text: "Appliquer de l'alcool dessus", correct: false,
+        text_es: "Aplicarle alcohol", text_en: "Applying alcohol to it",
+        why: "L'alcool est inadapté sur une plaie.",
+        why_es: "El alcohol es inadecuado sobre una herida.",
+        why_en: "Alcohol is unsuitable on a wound." },
     ],
   },
   {
     id: 22,
     question: "Quel SPF est recommandé entre les séances et jusqu'à cicatrisation complète ?",
+    question_es: "¿Qué SPF se recomienda entre sesiones y hasta la cicatrización completa?",
+    question_en: "What SPF is recommended between sessions and until fully healed?",
     options: [
-      { text: "SPF 15", correct: false,
-        why: "Insuffisant pour protéger une peau fragilisée par le laser." },
-      { text: "Aucune protection n'est nécessaire", correct: false,
-        why: "Au contraire, le soleil est le principal facteur de risque pigmentaire." },
-      { text: "SPF 30 au strict minimum, idéalement SPF 50", correct: true,
-        why: "Exact. La protection solaire élevée prévient l'hyperpigmentation post-inflammatoire." },
+      {
+        text: "SPF 15", correct: false,
+        text_es: "SPF 15", text_en: "SPF 15",
+        why: "Insuffisant pour protéger une peau fragilisée par le laser.",
+        why_es: "Insuficiente para proteger una piel debilitada por el láser.",
+        why_en: "Insufficient to protect skin weakened by the laser." },
+      {
+        text: "Aucune protection n'est nécessaire", correct: false,
+        text_es: "No hace falta protección", text_en: "No protection needed",
+        why: "Au contraire, le soleil est le principal facteur de risque pigmentaire.",
+        why_es: "Al contrario, el sol es el principal factor de riesgo pigmentario.",
+        why_en: "On the contrary, the sun is the main pigment-risk factor." },
+      {
+        text: "SPF 30 au strict minimum, idéalement SPF 50", correct: true,
+        text_es: "SPF 30 como mínimo, idealmente SPF 50", text_en: "SPF 30 at the very least, ideally SPF 50",
+        why: "Exact. La protection solaire élevée prévient l'hyperpigmentation post-inflammatoire.",
+        why_es: "Exacto. La protección solar alta previene la hiperpigmentación posinflamatoria.",
+        why_en: "Correct. High sun protection prevents post-inflammatory hyperpigmentation." },
     ],
   },
   {
     id: 23,
     question: "Le coup de soleil sur la zone à traiter est :",
+    question_es: "La quemadura solar en la zona a tratar es:",
+    question_en: "Sunburn on the area to be treated is:",
     options: [
-      { text: "Une contre-indication stricte (on reporte la séance)", correct: true,
-        why: "Exact. Le risque d'hyperpigmentation et de complications est trop élevé sur une peau brûlée." },
-      { text: "Sans importance", correct: false,
-        why: "Faux, c'est une contre-indication." },
-      { text: "Un avantage car la peau est préparée", correct: false,
-        why: "Absolument pas, c'est un facteur de risque majeur." },
+      {
+        text: "Une contre-indication stricte (on reporte la séance)", correct: true,
+        text_es: "Una contraindicación estricta (se aplaza la sesión)", text_en: "A strict contraindication (postpone the session)",
+        why: "Exact. Le risque d'hyperpigmentation et de complications est trop élevé sur une peau brûlée.",
+        why_es: "Exacto. El riesgo de hiperpigmentación y complicaciones es demasiado alto sobre una piel quemada.",
+        why_en: "Correct. The risk of hyperpigmentation and complications is too high on burnt skin." },
+      {
+        text: "Sans importance", correct: false,
+        text_es: "Sin importancia", text_en: "Not important",
+        why: "Faux, c'est une contre-indication.",
+        why_es: "Falso, es una contraindicación.",
+        why_en: "False, it's a contraindication." },
+      {
+        text: "Un avantage car la peau est préparée", correct: false,
+        text_es: "Una ventaja porque la piel está preparada", text_en: "An advantage because the skin is prepared",
+        why: "Absolument pas, c'est un facteur de risque majeur.",
+        why_es: "En absoluto, es un factor de riesgo importante.",
+        why_en: "Not at all, it's a major risk factor." },
     ],
   },
   {
     id: 24,
     question: "Un bronzage récent (sans coup de soleil) est-il une contre-indication absolue ?",
+    question_es: "¿Un bronceado reciente (sin quemadura) es una contraindicación absoluta?",
+    question_en: "Is a recent tan (without sunburn) an absolute contraindication?",
     options: [
-      { text: "Oui, on ne traite jamais une peau bronzée", correct: false,
-        why: "Trop catégorique. Le bronzage n'est pas une contre-indication absolue." },
-      { text: "Non, ça ne change rien aux réglages", correct: false,
-        why: "Faux, le médecin doit adapter la fluence sur peau bronzée." },
-      { text: "Non, mais il impose d'adapter les paramètres (fluence diminuée)", correct: true,
-        why: "Exact. Le bronzage reste un facteur de risque d'hyperpigmentation, les paramètres sont ajustés en conséquence." },
+      {
+        text: "Oui, on ne traite jamais une peau bronzée", correct: false,
+        text_es: "Sí, nunca se trata una piel bronceada", text_en: "Yes, you never treat tanned skin",
+        why: "Trop catégorique. Le bronzage n'est pas une contre-indication absolue.",
+        why_es: "Demasiado tajante. El bronceado no es una contraindicación absoluta.",
+        why_en: "Too absolute. A tan isn't an absolute contraindication." },
+      {
+        text: "Non, ça ne change rien aux réglages", correct: false,
+        text_es: "No, no cambia nada en los ajustes", text_en: "No, it changes nothing in the settings",
+        why: "Faux, le médecin doit adapter la fluence sur peau bronzée.",
+        why_es: "Falso, el médico debe adaptar la fluencia en piel bronceada.",
+        why_en: "False, the practitioner must adjust the fluence on tanned skin." },
+      {
+        text: "Non, mais il impose d'adapter les paramètres (fluence diminuée)", correct: true,
+        text_es: "No, pero obliga a adaptar los parámetros (fluencia reducida)", text_en: "No, but it requires adjusting the settings (reduced fluence)",
+        why: "Exact. Le bronzage reste un facteur de risque d'hyperpigmentation, les paramètres sont ajustés en conséquence.",
+        why_es: "Exacto. El bronceado sigue siendo un factor de riesgo de hiperpigmentación, se ajustan los parámetros en consecuencia.",
+        why_en: "Correct. A tan remains a hyperpigmentation risk factor, so the settings are adjusted accordingly." },
     ],
   },
   {
     id: 25,
     question: "Pourquoi le détatouage est-il déconseillé sur les paupières et les lèvres (maquillage permanent) ?",
+    question_es: "¿Por qué se desaconseja la eliminación en párpados y labios (maquillaje permanente)?",
+    question_en: "Why is removal on eyelids and lips (permanent makeup) advised against?",
     options: [
-      { text: "À cause du risque de virage de couleur des pigments (oxyde de fer, dioxyde de titane)", correct: true,
-        why: "Exact. Ces pigments peuvent virer au noir ou au gris de façon irréversible sous le laser." },
-      { text: "Parce que c'est trop douloureux", correct: false,
-        why: "La douleur n'est pas la raison principale." },
-      { text: "Parce que l'encre y est trop profonde", correct: false,
-        why: "La profondeur n'est pas l'enjeu principal sur ces zones." },
+      {
+        text: "À cause du risque de virage de couleur des pigments (oxyde de fer, dioxyde de titane)", correct: true,
+        text_es: "Por el riesgo de viraje de color de los pigmentos (óxido de hierro, dióxido de titanio)", text_en: "Because of the risk of colour shift of the pigments (iron oxide, titanium dioxide)",
+        why: "Exact. Ces pigments peuvent virer au noir ou au gris de façon irréversible sous le laser.",
+        why_es: "Exacto. Estos pigmentos pueden virar a negro o gris de forma irreversible bajo el láser.",
+        why_en: "Correct. These pigments can turn black or grey irreversibly under the laser." },
+      {
+        text: "Parce que c'est trop douloureux", correct: false,
+        text_es: "Porque es demasiado doloroso", text_en: "Because it's too painful",
+        why: "La douleur n'est pas la raison principale.",
+        why_es: "El dolor no es la razón principal.",
+        why_en: "Pain isn't the main reason." },
+      {
+        text: "Parce que l'encre y est trop profonde", correct: false,
+        text_es: "Porque la tinta está demasiado profunda ahí", text_en: "Because the ink is too deep there",
+        why: "La profondeur n'est pas l'enjeu principal sur ces zones.",
+        why_es: "La profundidad no es el problema principal en estas zonas.",
+        why_en: "Depth isn't the main issue on these areas." },
     ],
   },
   {
     id: 26,
     question: "L'assombrissement paradoxal concerne surtout :",
+    question_es: "El oscurecimiento paradójico afecta sobre todo a:",
+    question_en: "Paradoxical darkening mainly affects:",
     options: [
-      { text: "Les encres claires contenant des oxydes métalliques (rouge, blanc, beige)", correct: true,
-        why: "Exact. Ces pigments peuvent noircir sous le laser, c'est réversible avec un ajustement des paramètres." },
-      { text: "Les encres noires classiques", correct: false,
-        why: "Le noir s'éclaircit normalement, il n'est pas concerné." },
-      { text: "Toutes les encres de façon systématique", correct: false,
-        why: "C'est un phénomène spécifique à certaines encres, pas systématique." },
+      {
+        text: "Les encres claires contenant des oxydes métalliques (rouge, blanc, beige)", correct: true,
+        text_es: "Las tintas claras que contienen óxidos metálicos (rojo, blanco, beige)", text_en: "Light inks containing metallic oxides (red, white, beige)",
+        why: "Exact. Ces pigments peuvent noircir sous le laser, c'est réversible avec un ajustement des paramètres.",
+        why_es: "Exacto. Estos pigmentos pueden ennegrecerse bajo el láser, es reversible ajustando los parámetros.",
+        why_en: "Correct. These pigments can blacken under the laser, reversible by adjusting the settings." },
+      {
+        text: "Les encres noires classiques", correct: false,
+        text_es: "Las tintas negras clásicas", text_en: "Classic black inks",
+        why: "Le noir s'éclaircit normalement, il n'est pas concerné.",
+        why_es: "El negro se aclara normalmente, no le afecta.",
+        why_en: "Black lightens normally, it isn't affected." },
+      {
+        text: "Toutes les encres de façon systématique", correct: false,
+        text_es: "Todas las tintas de forma sistemática", text_en: "All inks systematically",
+        why: "C'est un phénomène spécifique à certaines encres, pas systématique.",
+        why_es: "Es un fenómeno específico de ciertas tintas, no sistemático.",
+        why_en: "It's specific to certain inks, not systematic." },
     ],
   },
   {
     id: 27,
     question: "La grossesse est-elle une contre-indication au détatouage ?",
+    question_es: "¿El embarazo es una contraindicación para la eliminación?",
+    question_en: "Is pregnancy a contraindication to removal?",
     options: [
-      { text: "Non, c'est sans danger", correct: false,
-        why: "On ne traite pas une femme enceinte, par principe de précaution." },
-      { text: "Uniquement au premier trimestre", correct: false,
-        why: "La contre-indication couvre toute la grossesse et l'allaitement." },
-      { text: "Oui, par principe de précaution", correct: true,
-        why: "Exact. Même sans effet documenté sur le fœtus, on s'abstient par précaution, ainsi que pendant l'allaitement." },
+      {
+        text: "Non, c'est sans danger", correct: false,
+        text_es: "No, no tiene ningún peligro", text_en: "No, it's completely safe",
+        why: "On ne traite pas une femme enceinte, par principe de précaution.",
+        why_es: "No se trata a una embarazada, por principio de precaución.",
+        why_en: "You don't treat a pregnant woman, as a precaution." },
+      {
+        text: "Uniquement au premier trimestre", correct: false,
+        text_es: "Solo en el primer trimestre", text_en: "Only in the first trimester",
+        why: "La contre-indication couvre toute la grossesse et l'allaitement.",
+        why_es: "La contraindicación cubre todo el embarazo y la lactancia.",
+        why_en: "The contraindication covers the whole pregnancy and breastfeeding." },
+      {
+        text: "Oui, par principe de précaution", correct: true,
+        text_es: "Sí, por principio de precaución", text_en: "Yes, as a precaution",
+        why: "Exact. Même sans effet documenté sur le fœtus, on s'abstient par précaution, ainsi que pendant l'allaitement.",
+        why_es: "Exacto. Aunque no haya efecto documentado sobre el feto, se evita por precaución, así como durante la lactancia.",
+        why_en: "Correct. Even with no documented effect on the foetus, we abstain as a precaution, and during breastfeeding too." },
     ],
   },
   {
     id: 28,
     question: "Sur un phototype foncé, quel critère clinique le médecin privilégie-t-il ?",
+    question_es: "En un fototipo oscuro, ¿qué criterio clínico prioriza el médico?",
+    question_en: "On a dark phototype, which clinical marker does the practitioner favour?",
     options: [
-      { text: "Un érythème léger ou un léger assombrissement de l'encre", correct: true,
-        why: "Exact. On vise un critère d'évaluation moins sévère pour limiter le risque pigmentaire." },
-      { text: "Un givrage intense et un blanchiment marqué", correct: false,
-        why: "Au contraire, sur peau foncée le givrage marqué peut être excessif et risqué." },
-      { text: "Aucun critère, on tire au maximum", correct: false,
-        why: "Dangereux. Les fluences excessives provoquent des effets indésirables." },
+      {
+        text: "Un érythème léger ou un léger assombrissement de l'encre", correct: true,
+        text_es: "Un eritema leve o un ligero oscurecimiento de la tinta", text_en: "Mild erythema or slight darkening of the ink",
+        why: "Exact. On vise un critère d'évaluation moins sévère pour limiter le risque pigmentaire.",
+        why_es: "Exacto. Se busca un criterio de evaluación menos intenso para limitar el riesgo pigmentario.",
+        why_en: "Correct. A gentler endpoint is aimed for to limit the pigment risk." },
+      {
+        text: "Un frosting intense et un blanchiment marqué", correct: false,
+        text_es: "Un frosting intenso y un blanqueamiento marcado", text_en: "Intense frosting and marked whitening",
+        why: "Au contraire, sur peau foncée le frosting marqué peut être excessif et risqué.",
+        why_es: "Al contrario, en piel oscura el frosting marcado puede ser excesivo y arriesgado.",
+        why_en: "On the contrary, on dark skin marked frosting can be excessive and risky." },
+      {
+        text: "Aucun critère, on tire au maximum", correct: false,
+        text_es: "Ningún criterio, se dispara al máximo", text_en: "No marker, fire at maximum",
+        why: "Dangereux. Les fluences excessives provoquent des effets indésirables.",
+        why_es: "Peligroso. Las fluencias excesivas provocan efectos indeseados.",
+        why_en: "Dangerous. Excessive fluences cause adverse effects." },
     ],
   },
   {
     id: 29,
     question: "Que faut-il faire en cas de saignements ponctuels fréquents pendant le tir ?",
+    question_es: "¿Qué hacer ante sangrados puntuales frecuentes durante el disparo?",
+    question_en: "What should be done about frequent pinpoint bleeding during the shot?",
     options: [
-      { text: "Réduire la fluence jusqu'à ce que les saignements disparaissent", correct: true,
-        why: "Exact. Un saignement ponctuel fréquent est un signe d'énergie trop élevée." },
-      { text: "Augmenter la fluence pour finir plus vite", correct: false,
-        why: "Faux. Le saignement signale plutôt une densité d'énergie excessive." },
-      { text: "Arrêter définitivement le traitement", correct: false,
-        why: "Inutilement radical. On ajuste les paramètres." },
+      {
+        text: "Réduire la fluence jusqu'à ce que les saignements disparaissent", correct: true,
+        text_es: "Reducir la fluencia hasta que desaparezcan los sangrados", text_en: "Reduce the fluence until the bleeding stops",
+        why: "Exact. Un saignement ponctuel fréquent est un signe d'énergie trop élevée.",
+        why_es: "Exacto. Un sangrado puntual frecuente es señal de energía demasiado alta.",
+        why_en: "Correct. Frequent pinpoint bleeding is a sign of too much energy." },
+      {
+        text: "Augmenter la fluence pour finir plus vite", correct: false,
+        text_es: "Aumentar la fluencia para terminar antes", text_en: "Increase the fluence to finish faster",
+        why: "Faux. Le saignement signale plutôt une densité d'énergie excessive.",
+        why_es: "Falso. El sangrado indica más bien una densidad de energía excesiva.",
+        why_en: "False. Bleeding rather signals excessive energy density." },
+      {
+        text: "Arrêter définitivement le traitement", correct: false,
+        text_es: "Detener definitivamente el tratamiento", text_en: "Stop the treatment for good",
+        why: "Inutilement radical. On ajuste les paramètres.",
+        why_es: "Innecesariamente radical. Se ajustan los parámetros.",
+        why_en: "Needlessly drastic. You adjust the settings." },
     ],
   },
-  {
-    id: 30,
-    question: "Les zones du corps les mieux vascularisées (proches du cœur) :",
-    options: [
-      { text: "Évacuent les pigments plus lentement", correct: false,
-        why: "C'est l'inverse : mieux c'est vascularisé, mieux ça draine." },
-      { text: "Ne changent rien à la vitesse d'évacuation", correct: false,
-        why: "La vascularisation influence directement le drainage." },
-      { text: "Évacuent les pigments plus rapidement", correct: true,
-        why: "Exact. Une bonne vascularisation aide les macrophages à drainer les fragments. Les extrémités (mains, pieds) sont plus lentes." },
-    ],
-  }
 ];
 
 
@@ -915,56 +2001,111 @@ const FORBIDDEN_PHRASES = [
     bad: "Ça va partir à 100 %",
     why: "Trop affirmatif. Le résultat dépend des couleurs, du type d'encre et de la peau. Promettre crée une déception.",
     good: "Chez Ray studios, on a un laser PicoWay parmi les plus performants et des médecins expérimentés. Le médecin vous donnera un pronostic réaliste en consultation.",
+    bad_es: "Se va a quitar al 100 %", bad_en: "It'll come off 100%",
+    why_es: "Demasiado tajante. El resultado depende de los colores, del tipo de tinta y de la piel. Prometer genera decepción.",
+    why_en: "Too absolute. The result depends on colours, ink type and skin. Promising creates disappointment.",
+    good_es: "En Ray studios tenemos un láser PicoWay de los más potentes y médicos con experiencia. El médico te dará un pronóstico realista en consulta.",
+    good_en: "At Ray studios we have one of the most powerful PicoWay lasers and experienced practitioners. The practitioner will give you a realistic prognosis at the consultation.",
   },
   {
     bad: "Comptez X séances",
     why: "L'estimation revient au médecin via le Ray Tattoo Profile. Avancer un chiffre vous met en porte-à-faux.",
     good: "Nous avons un outil qui aide à estimer le nombre de séances, et le médecin affinera tout ça avec votre Ray Tattoo Profile en consultation.",
+    bad_es: "Cuente unas X sesiones", bad_en: "Count on X sessions",
+    why_es: "La estimación corresponde al médico mediante el Ray Tattoo Profile. Dar una cifra te deja en mala posición.",
+    why_en: "Estimating is the practitioner's job via the Ray Tattoo Profile. Giving a number puts you in an awkward spot.",
+    good_es: "Tenemos una herramienta que ayuda a estimar el número de sesiones, y el médico lo afinará con tu Ray Tattoo Profile en consulta.",
+    good_en: "We have a tool that helps estimate the number of sessions, and the practitioner will refine it with your Ray Tattoo Profile at the consultation.",
   },
   {
     bad: "Ce n'est pas grave",
     why: "Minimise l'inquiétude. Le patient se sent non-écouté et peut se fermer.",
     good: "Je comprends votre inquiétude. Je la transmets au médecin pour qu'il vous rappelle et vous réponde précisément.",
+    bad_es: "No es nada", bad_en: "It's nothing",
+    why_es: "Minimiza la preocupación. El paciente se siente no escuchado y puede cerrarse.",
+    why_en: "Downplays the worry. The patient feels unheard and may shut down.",
+    good_es: "Entiendo tu preocupación. Se la traslado al médico para que te llame y te responda con precisión.",
+    good_en: "I understand your concern. I'll pass it to the practitioner so they call you back and answer precisely.",
   },
   {
     bad: "C'est totalement indolore",
     why: "Faux. À la première impulsion, le patient perd toute confiance en vous.",
     good: "C'est inconfortable, comme un élastique qui claque, mais notre technologie picoseconde limite la sensation. On utilise du froid en continu et une balle anti-stress est à disposition.",
+    bad_es: "Es totalmente indoloro", bad_en: "It's completely painless",
+    why_es: "Falso. Al primer disparo, el paciente pierde toda la confianza en ti.",
+    why_en: "False. At the first shot, the patient loses all trust in you.",
+    good_es: "Es molesto, como una goma que chasquea, pero nuestra tecnología picosegundo reduce la sensación. Usamos frío continuo y hay una pelota antiestrés disponible.",
+    good_en: "It's uncomfortable, like a snapping rubber band, but our picosecond technology limits the feeling. We use continuous cold and a stress ball is available.",
   },
   {
     bad: "Vous êtes la première à avoir ça",
     why: "Anxiogène. Donne l'impression d'un cas isolé, voire d'une erreur du centre.",
     good: "Ce que vous décrivez, on l'a déjà rencontré, c'est connu. Je le transmets au médecin pour qu'il l'évalue.",
+    bad_es: "Eres la primera con esto", bad_en: "You're the first to have this",
+    why_es: "Genera ansiedad. Da impresión de caso aislado, o incluso de un error del centro.",
+    why_en: "Anxiety-inducing. Suggests an isolated case, or even a mistake by the centre.",
+    good_es: "Lo que describes ya lo hemos visto, es conocido. Se lo traslado al médico para que lo evalúe.",
+    good_en: "What you're describing we've seen before, it's well known. I'll pass it to the practitioner to assess.",
   },
   {
     bad: "Allez aux urgences",
     why: "Excessif sans contexte. Nous avons un parcours interne avec le médecin en première intention.",
     good: "Je préviens le médecin tout de suite pour qu'il vous rappelle. Décrivez-moi ce que vous voyez.",
+    bad_es: "Vaya a urgencias", bad_en: "Go to A&E",
+    why_es: "Excesivo sin contexto. Tenemos un circuito interno con el médico como primera opción.",
+    why_en: "Excessive without context. We have an internal pathway with the practitioner as first port of call.",
+    good_es: "Aviso al médico enseguida para que te llame. Descríbeme lo que ves.",
+    good_en: "I'll alert the practitioner right away to call you. Describe what you can see.",
   },
   {
     bad: "Je ne sais pas",
     why: "Peu rassurant. Donne l'impression d'un manque de professionnalisme.",
     good: "C'est une bonne question. Je vérifie auprès du médecin et je vous rappelle aujourd'hui.",
+    bad_es: "No lo sé", bad_en: "I don't know",
+    why_es: "Poco tranquilizador. Da sensación de falta de profesionalidad.",
+    why_en: "Not reassuring. Gives an impression of a lack of professionalism.",
+    good_es: "Buena pregunta. Lo consulto con el médico y te llamo hoy mismo.",
+    good_en: "Good question. I'll check with the practitioner and call you back today.",
   },
   {
     bad: "Bon, ce médicament, ça passe",
     why: "Aucune évaluation de compatibilité ne relève du SM. Jamais. Même pour un antibiotique banal, et même si la base ne le signale pas comme contre-indiqué.",
     good: "Je note votre traitement. C'est le médecin qui évaluera la compatibilité en consultation, je ne peux pas vous le garantir à l'avance.",
+    bad_es: "Bueno, ese medicamento no pasa nada", bad_en: "That medication, it's fine",
+    why_es: "Ninguna evaluación de compatibilidad corresponde al SM. Nunca. Ni siquiera con un antibiótico común, y aunque la base no lo marque como contraindicado.",
+    why_en: "No compatibility assessment is the SM's role. Ever. Not even for a common antibiotic, even if the database doesn't flag it as contraindicated.",
+    good_es: "Anoto tu tratamiento. Es el médico quien evaluará la compatibilidad en consulta, no puedo garantizártelo de antemano.",
+    good_en: "I'll note your treatment. It's the practitioner who will assess compatibility at the consultation, I can't guarantee it in advance.",
   },
   {
     bad: "Le médecin va sûrement dire oui",
     why: "Engage le médecin sur une décision qu'il n'a pas prise. Met le patient en attente d'un OK qui peut ne pas venir.",
     good: "C'est au médecin de trancher en fonction de votre dossier. Je transmets votre demande pour qu'il l'étudie.",
+    bad_es: "El médico seguro que dirá que sí", bad_en: "The practitioner will surely say yes",
+    why_es: "Compromete al médico con una decisión que no ha tomado. Deja al paciente esperando un 'sí' que puede no llegar.",
+    why_en: "Commits the practitioner to a decision they haven't made. Leaves the patient expecting a 'yes' that may not come.",
+    good_es: "Es el médico quien decide según tu historial. Traslado tu petición para que la estudie.",
+    good_en: "It's the practitioner who decides based on your file. I'll pass your request on for them to review.",
   },
   {
     bad: "Les autres centres sont moins bien",
     why: "Dénigrer la concurrence n'est jamais crédible. On valorise Ray studios sur des faits, pas en rabaissant les autres.",
     good: "Chez nous, le médecin réalise lui-même la séance, le laser est un PicoWay et le parcours est encadré du début à la fin. C'est ce qui fait notre différence.",
+    bad_es: "Los otros centros son peores", bad_en: "Other centres are worse",
+    why_es: "Desprestigiar a la competencia nunca es creíble. Valoramos Ray studios con hechos, no rebajando a los demás.",
+    why_en: "Running down the competition is never credible. We highlight Ray studios with facts, not by putting others down.",
+    good_es: "Aquí es el médico quien realiza la sesión, el láser es un PicoWay y el recorrido está supervisado de principio a fin. Eso marca la diferencia.",
+    good_en: "Here the practitioner performs the session, the laser is a PicoWay and the journey is supervised from start to finish. That's what sets us apart.",
   },
   {
     bad: "Ne vous inquiétez pas, tout va bien se passer",
     why: "Bien intentionné, mais c'est une promesse qu'on ne peut pas tenir. Mieux vaut rassurer par le sérieux du cadre que par une garantie.",
     good: "Vous êtes entre de bonnes mains : matériel de pointe, médecins compétents et un suivi à chaque étape. Toute inquiétude, on la transmet au médecin.",
+    bad_es: "No se preocupe, todo saldrá bien", bad_en: "Don't worry, it'll all be fine",
+    why_es: "Bienintencionado, pero es una promesa que no se puede cumplir. Mejor tranquilizar por la seriedad del marco que por una garantía.",
+    why_en: "Well-meaning, but it's a promise you can't keep. Better to reassure through the seriousness of the setup than with a guarantee.",
+    good_es: "Estás en buenas manos: material de última generación, médicos competentes y un seguimiento en cada etapa. Cualquier inquietud, se la trasladamos al médico.",
+    good_en: "You're in good hands: state-of-the-art equipment, skilled practitioners and follow-up at every step. Any concern, we pass it to the practitioner.",
   },
 ];
 
@@ -975,418 +2116,594 @@ const GLOSSARY = [
     techDef: "Phénomène où le tatouage devient temporairement plus foncé après une séance, sur certains pigments (encres rouges, blanches, beiges contenant des oxydes métalliques).",
     mechanism: "Sous l'effet du laser, les oxydes métalliques de ces encres (fer, titane) se réduisent chimiquement et changent d'état, ce qui les fait virer au gris ou au noir. C'est réversible : les séances suivantes, avec la bonne longueur d'onde, fragmentent ensuite ce pigment assombri.",
     patientWords: "Ça peut arriver sur certaines encres, c'est connu et réversible. Le médecin adaptera la longueur d'onde aux séances suivantes.",
+    term_es: "Oscurecimiento paradójico", term_en: "Paradoxical darkening",
+    techDef_es: "Fenómeno en el que el tatuaje se vuelve temporalmente más oscuro tras una sesión, en ciertos pigmentos (tintas rojas, blancas, beige que contienen óxidos metálicos).",
+    techDef_en: "Phenomenon where the tattoo temporarily becomes darker after a session, on certain pigments (red, white, beige inks containing metallic oxides).",
+    mechanism_es: "Bajo el efecto del láser, los óxidos metálicos de estas tintas (hierro, titanio) se reducen químicamente y cambian de estado, lo que los hace virar a gris o negro. Es reversible: en las sesiones siguientes, con la longitud de onda adecuada, se fragmenta ese pigmento oscurecido.",
+    mechanism_en: "Under the laser, the metallic oxides in these inks (iron, titanium) are chemically reduced and change state, turning them grey or black. It is reversible: in later sessions, with the right wavelength, that darkened pigment is then fragmented.",
+    patientWords_es: "Puede ocurrir en ciertas tintas, es conocido y reversible. El médico adaptará la longitud de onda en las siguientes sesiones.",
+    patientWords_en: "It can happen on certain inks, it's well known and reversible. The practitioner will adjust the wavelength in the next sessions.",
   },
   {
     term: "Chéloïde",
     techDef: "Cicatrice anormalement épaisse, surélevée et qui déborde de la plaie d'origine. Prédisposition génétique.",
     mechanism: "Lors de la cicatrisation, les cellules qui produisent le collagène (fibroblastes) s'emballent et en fabriquent en excès. Chez les personnes prédisposées, la cicatrice déborde alors au-delà de la plaie initiale au lieu de s'arrêter à ses bords.",
     patientWords: "Une cicatrice particulière qui peut se former chez certaines personnes prédisposées. Le médecin vérifie en consultation initiale.",
+    term_es: "Queloide", term_en: "Keloid",
+    techDef_es: "Cicatriz anormalmente gruesa, elevada y que desborda la herida original. Predisposición genética.",
+    techDef_en: "Abnormally thick, raised scar that extends beyond the original wound. Genetic predisposition.",
+    mechanism_es: "Durante la cicatrización, las células que producen el colágeno (fibroblastos) se descontrolan y lo fabrican en exceso. En las personas predispuestas, la cicatriz desborda más allá de la herida inicial en lugar de detenerse en sus bordes.",
+    mechanism_en: "During healing, the cells that produce collagen (fibroblasts) go into overdrive and make too much. In predisposed people, the scar spreads beyond the initial wound instead of stopping at its edges.",
+    patientWords_es: "Una cicatriz particular que puede formarse en ciertas personas predispuestas. El médico lo comprueba en la consulta inicial.",
+    patientWords_en: "A particular scar that can form in certain predisposed people. The practitioner checks for it at the initial consultation.",
   },
   {
     term: "Cryothérapie",
     techDef: "Refroidissement de la peau par souffle d'air à très basse température, pendant et après le passage du laser (Zimmer ou Mecotec).",
     patientWords: "L'air froid qu'on souffle pendant la séance pour anesthésier la peau et limiter l'inconfort.",
+    term_es: "Crioterapia", term_en: "Cryotherapy",
+    techDef_es: "Enfriamiento de la piel mediante aire a muy baja temperatura, durante y después del paso del láser (Zimmer o Mecotec).",
+    techDef_en: "Cooling of the skin with very low-temperature air, during and after the laser pass (Zimmer or Mecotec).",
+    patientWords_es: "El aire frío que se sopla durante la sesión para anestesiar la piel y reducir las molestias.",
+    patientWords_en: "The cold air blown during the session to numb the skin and limit discomfort.",
   },
   {
     term: "Croûte",
     techDef: "Formation sèche qui apparaît pendant la cicatrisation, après une phase de suintement. Ne doit jamais être grattée ni arrachée.",
     patientWords: "Une petite croûte peut se former, c'est normal. Surtout ne pas la gratter : laissez-la tomber toute seule.",
+    term_es: "Costra", term_en: "Scab",
+    techDef_es: "Formación seca que aparece durante la cicatrización, tras una fase de supuración. Nunca debe rascarse ni arrancarse.",
+    techDef_en: "Dry formation that appears during healing, after an oozing phase. Must never be scratched or picked off.",
+    patientWords_es: "Puede formarse una pequeña costra, es normal. Sobre todo no rascarla: deja que caiga sola.",
+    patientWords_en: "A small scab may form, that's normal. Above all don't scratch it: let it fall off on its own.",
   },
   {
     term: "Dépigmentation",
     techDef: "Perte de couleur de la peau (terme englobant l'hypopigmentation). Peut être temporaire ou durable selon l'intensité et le phototype.",
     patientWords: "Une zone qui perd sa couleur naturelle. On en parle au médecin pour qu'il évalue et adapte.",
+    term_es: "Despigmentación", term_en: "Depigmentation",
+    techDef_es: "Pérdida de color de la piel (término que engloba la hipopigmentación). Puede ser temporal o duradera según la intensidad y el fototipo.",
+    techDef_en: "Loss of skin colour (an umbrella term including hypopigmentation). Can be temporary or lasting depending on intensity and phototype.",
+    patientWords_es: "Una zona que pierde su color natural. Se comenta con el médico para que lo evalúe y lo ajuste.",
+    patientWords_en: "An area that loses its natural colour. It's discussed with the practitioner so they can assess and adjust.",
   },
   {
     term: "Dermatoscope",
     techDef: "Loupe grossissante avec éclairage permettant l'examen détaillé de la peau et des pigments.",
     patientWords: "Une sorte de loupe que le médecin utilise pour examiner votre tatouage et votre peau en détail.",
+    term_es: "Dermatoscopio", term_en: "Dermatoscope",
+    techDef_es: "Lupa con iluminación que permite el examen detallado de la piel y de los pigmentos.",
+    techDef_en: "Magnifying lens with lighting that allows detailed examination of the skin and pigments.",
+    patientWords_es: "Una especie de lupa que el médico usa para examinar tu tatuaje y tu piel en detalle.",
+    patientWords_en: "A kind of magnifier the practitioner uses to examine your tattoo and skin in detail.",
   },
   {
     term: "Détatouage",
     techDef: "Élimination progressive d'un tatouage par fragmentation laser des pigments, ensuite évacués par l'organisme. Nécessite plusieurs séances.",
     patientWords: "Le laser casse l'encre en petits morceaux que votre corps élimine ensuite, séance après séance.",
+    term_es: "Eliminación de tatuajes", term_en: "Tattoo removal",
+    techDef_es: "Eliminación progresiva de un tatuaje mediante la fragmentación con láser de los pigmentos, que luego el organismo evacúa. Requiere varias sesiones.",
+    techDef_en: "Progressive removal of a tattoo by laser fragmentation of the pigments, which are then cleared by the body. Requires several sessions.",
+    patientWords_es: "El láser rompe la tinta en pequeños fragmentos que tu cuerpo va eliminando, sesión tras sesión.",
+    patientWords_en: "The laser breaks the ink into tiny fragments your body then clears out, session after session.",
   },
   {
     term: "Effet photoacoustique",
     techDef: "Mécanisme du laser PicoWay : fragmentation des pigments par onde de choc mécanique plutôt que par chaleur (photothermique).",
     patientWords: "Le laser pulvérise l'encre par vibration plutôt que par brûlure. C'est ce qui rend le PicoWay plus précis et mieux toléré.",
+    term_es: "Efecto fotoacústico", term_en: "Photoacoustic effect",
+    techDef_es: "Mecanismo del láser PicoWay: fragmentación de los pigmentos por onda de choque mecánica en lugar de por calor (fototérmico).",
+    techDef_en: "Mechanism of the PicoWay laser: fragmentation of pigments by a mechanical shock wave rather than by heat (photothermal).",
+    patientWords_es: "Nuestro láser pulveriza la tinta por onda de choque en vez de por calor, es más preciso y mejor tolerado.",
+    patientWords_en: "Our laser shatters the ink by a shock wave rather than heat, which is more precise and better tolerated.",
   },
   {
     term: "Érythème",
     techDef: "Rougeur de la peau, réaction inflammatoire normale après une séance laser.",
     mechanism: "L'énergie du laser provoque une micro-inflammation locale. Le corps y répond en dilatant les petits vaisseaux sanguins pour amener plus de sang vers la zone, ce qui la fait rougir. Cela s'estompe en quelques heures à quelques jours.",
     patientWords: "La rougeur qui apparaît après la séance. C'est normal et ça passe en quelques jours.",
+    term_es: "Eritema", term_en: "Erythema",
+    techDef_es: "Enrojecimiento de la piel, reacción inflamatoria normal tras una sesión de láser.",
+    techDef_en: "Redness of the skin, a normal inflammatory reaction after a laser session.",
+    mechanism_es: "La energía del láser provoca una microinflamación local. El cuerpo responde dilatando los pequeños vasos sanguíneos para llevar más sangre a la zona, lo que la enrojece. Desaparece en unas horas o días.",
+    mechanism_en: "The laser's energy causes local micro-inflammation. The body responds by dilating the small blood vessels to bring more blood to the area, which makes it red. It fades within hours to days.",
+    patientWords_es: "El enrojecimiento tras la sesión es normal y transitorio. Se calma con frío y desaparece rápido.",
+    patientWords_en: "Redness after the session is normal and temporary. It eases with cold and fades quickly.",
   },
   {
     term: "Fluence",
     techDef: "Énergie laser délivrée par unité de surface, exprimée en J/cm². Réglée par le médecin selon le phototype et la lésion.",
     patientWords: "L'intensité du laser, que le médecin ajuste à votre peau et à votre tatouage.",
+    term_es: "Fluencia", term_en: "Fluence",
+    techDef_es: "Energía del láser entregada por unidad de superficie, expresada en J/cm². La regula el médico según el fototipo y la lesión.",
+    techDef_en: "Laser energy delivered per unit area, expressed in J/cm². Set by the practitioner according to phototype and lesion.",
+    patientWords_es: "La intensidad del láser, que el médico ajusta a tu piel y a tu tatuaje.",
+    patientWords_en: "The laser's intensity, which the practitioner adjusts to your skin and your tattoo.",
   },
   {
-    term: "Givrage",
+    term: "Frosting",
     techDef: "Blanchiment instantané de la zone pendant le tir, dû à un micro-dégagement de gaz. Repère clinique d'une fluence adaptée. Disparaît en quelques minutes.",
     mechanism: "L'onde de choc du laser vaporise en un instant une infime quantité d'eau et de gaz dans la peau. Ces micro-bulles remontent en surface et diffusent la lumière, d'où ce blanchiment passager, le temps que le gaz se résorbe.",
     patientWords: "Le petit blanchiment qu'on voit pendant le tir, c'est bon signe : ça veut dire que le laser agit bien.",
+    term_es: "Frosting", term_en: "Frosting",
+    techDef_es: "Blanqueamiento instantáneo de la zona durante el disparo, debido a un micro-desprendimiento de gas. Señal clínica de una fluencia adecuada. Desaparece en unos minutos.",
+    techDef_en: "Instant whitening of the area during the shot, due to a micro-release of gas. A clinical marker of appropriate fluence. Disappears within a few minutes.",
+    mechanism_es: "La onda de choque del láser vaporiza al instante una mínima cantidad de agua y gas en la piel. Esas microburbujas suben a la superficie y dispersan la luz, de ahí ese blanqueamiento pasajero, hasta que el gas se reabsorbe.",
+    mechanism_en: "The laser's shock wave instantly vaporises a tiny amount of water and gas in the skin. These micro-bubbles rise to the surface and scatter light, hence that temporary whitening, until the gas is reabsorbed.",
+    patientWords_es: "El pequeño blanqueamiento que se ve durante el disparo es buena señal: significa que el láser está actuando bien.",
+    patientWords_en: "The slight whitening seen during the shot is a good sign: it means the laser is working well.",
   },
   {
     term: "Hyperpigmentation",
     techDef: "Assombrissement de la peau post-inflammatoire. Plus fréquent sur phototypes III à VI, lié au soleil ou à des fluences excessives.",
     mechanism: "En réaction à l'inflammation du laser, les cellules pigmentaires (mélanocytes) se mettent à produire trop de mélanine. Le soleil amplifie ce phénomène, d'où l'importance d'une protection SPF 50 entre les séances, surtout sur peaux mates.",
     patientWords: "Une zone qui devient plus foncée après cicatrisation. Souvent transitoire (quelques semaines à mois). La protection solaire est essentielle.",
+    term_es: "Hiperpigmentación", term_en: "Hyperpigmentation",
+    techDef_es: "Oscurecimiento de la piel posinflamatorio. Más frecuente en fototipos III a VI, ligado al sol o a fluencias excesivas.",
+    techDef_en: "Post-inflammatory darkening of the skin. More common on phototypes III to VI, linked to sun or excessive fluence.",
+    mechanism_es: "En reacción a la inflamación del láser, las células pigmentarias (melanocitos) producen demasiada melanina. El sol amplifica el fenómeno, de ahí la importancia de una protección SPF 50 entre sesiones, sobre todo en pieles morenas.",
+    mechanism_en: "In response to the laser's inflammation, the pigment cells (melanocytes) start producing too much melanin. The sun amplifies this, hence the importance of SPF 50 protection between sessions, especially on darker skin.",
+    patientWords_es: "Una zona más oscura que puede aparecer, sobre todo con el sol. Por eso la protección solar es clave.",
+    patientWords_en: "A darker area that can appear, especially with sun. That's why sun protection is key.",
   },
   {
     term: "Hypopigmentation",
     techDef: "Éclaircissement de la peau par perte de mélanine. Peut être irréversible. Plus fréquent sur 532 nm et en cas de refroidissement excessif.",
     mechanism: "À l'inverse, une énergie trop forte ou un froid excessif peut endommager les mélanocytes, les cellules qui fabriquent le pigment de la peau. Privées de ces cellules, la zone reste plus claire, parfois durablement.",
     patientWords: "Une zone plus claire que la peau normale. Peut prendre 3 à 6 mois à se repigmenter.",
+    term_es: "Hipopigmentación", term_en: "Hypopigmentation",
+    techDef_es: "Aclaramiento de la piel por pérdida de melanina. Puede ser irreversible. Más frecuente con el 532 nm y en caso de enfriamiento excesivo.",
+    techDef_en: "Lightening of the skin from loss of melanin. Can be irreversible. More common with 532 nm and with excessive cooling.",
+    mechanism_es: "Por el contrario, una energía demasiado fuerte o un frío excesivo puede dañar los melanocitos, las células que fabrican el pigmento de la piel. Sin esas células, la zona queda más clara, a veces de forma duradera.",
+    mechanism_en: "Conversely, too much energy or excessive cold can damage the melanocytes, the cells that make the skin's pigment. Without those cells, the area stays lighter, sometimes lastingly.",
+    patientWords_es: "Una zona más clara que la piel normal. Puede tardar de 3 a 6 meses en recuperar el color.",
+    patientWords_en: "An area lighter than normal skin. It can take 3 to 6 months to regain colour.",
   },
   {
     term: "Longueur d'onde",
     techDef: "Couleur précise du faisceau laser, en nanomètres (nm). Chez Ray studios : 532 nm (rouge, jaune), 730 nm et 1064 nm (noir, foncés). Choisie selon l'encre.",
     patientWords: "Chaque couleur d'encre a besoin d'un type de laser précis. C'est pour ça qu'on en a plusieurs au centre.",
+    term_es: "Longitud de onda", term_en: "Wavelength",
+    techDef_es: "Color preciso del haz láser, en nanómetros (nm). En Ray studios: 532 nm (rojo, amarillo), 730 nm y 1064 nm (negro, oscuros). Se elige según la tinta.",
+    techDef_en: "The precise colour of the laser beam, in nanometres (nm). At Ray studios: 532 nm (red, yellow), 730 nm and 1064 nm (black, dark colours). Chosen according to the ink.",
+    patientWords_es: "Cada color de tinta necesita un tipo de láser preciso. Por eso tenemos varios en el centro.",
+    patientWords_en: "Each ink colour needs a specific type of laser. That's why we have several at the centre.",
   },
   {
     term: "Macrophage",
     techDef: "Cellule du système immunitaire qui phagocyte les pigments fragmentés par le laser et les évacue via les voies lymphatiques.",
     mechanism: "Le tatouage tient justement parce que les particules d'encre d'origine sont trop grosses : les macrophages restent coincés avec. Une fois le laser passé, les fragments sont assez petits pour être capturés puis emmenés vers les ganglions, où le corps les élimine.",
     patientWords: "Les cellules qui « nettoient » votre peau et évacuent les pigments cassés par le laser. C'est pourquoi il faut 6-8 semaines entre deux séances.",
+    term_es: "Macrófago", term_en: "Macrophage",
+    techDef_es: "Célula del sistema inmunitario que fagocita los pigmentos fragmentados por el láser y los evacúa por las vías linfáticas.",
+    techDef_en: "An immune-system cell that engulfs the pigments fragmented by the laser and clears them via the lymphatic vessels.",
+    mechanism_es: "El tatuaje se mantiene precisamente porque las partículas de tinta originales son demasiado grandes: los macrófagos quedan atrapados con ellas. Tras el láser, los fragmentos son lo bastante pequeños para ser capturados y llevados a los ganglios, donde el cuerpo los elimina.",
+    mechanism_en: "A tattoo lasts precisely because the original ink particles are too big: macrophages stay stuck with them. After the laser, the fragments are small enough to be captured and carried to the lymph nodes, where the body eliminates them.",
+    patientWords_es: "Las células que 'limpian' tu piel y evacúan los pigmentos rotos por el láser. Por eso hacen falta de 6 a 8 semanas entre sesiones.",
+    patientWords_en: "The cells that 'clean' your skin and clear the pigments broken up by the laser. That's why 6 to 8 weeks are needed between sessions.",
   },
   {
     term: "Mélanine",
     techDef: "Pigment naturel responsable de la couleur de la peau. Plus présente sur les phototypes foncés, elle absorbe aussi le laser, d'où les précautions accrues.",
     patientWords: "Le pigment qui donne sa couleur à la peau. Plus la peau est foncée, plus le médecin règle le laser avec prudence.",
+    term_es: "Melanina", term_en: "Melanin",
+    techDef_es: "Pigmento natural responsable del color de la piel. Más presente en los fototipos oscuros, también absorbe el láser, de ahí las precauciones adicionales.",
+    techDef_en: "The natural pigment responsible for skin colour. More present in dark phototypes, it also absorbs the laser, hence the extra precautions.",
+    patientWords_es: "El pigmento que da color a la piel. Cuanto más morena es la piel, más ajusta el médico el láser con prudencia.",
+    patientWords_en: "The pigment that gives skin its colour. The darker the skin, the more carefully the practitioner sets the laser.",
   },
   {
     term: "Œdème",
     techDef: "Gonflement localisé dû à l'accumulation de liquide, réaction inflammatoire fréquente et transitoire après une séance.",
     mechanism: "L'inflammation rend les petits vaisseaux temporairement plus perméables. Du liquide s'échappe alors dans les tissus voisins et les fait gonfler. Le froid appliqué en séance limite cette réaction, qui disparaît en quelques jours.",
     patientWords: "Un petit gonflement après la séance, c'est normal et ça part en quelques jours.",
+    term_es: "Edema", term_en: "Oedema",
+    techDef_es: "Hinchazón localizada por acumulación de líquido, reacción inflamatoria frecuente y transitoria tras una sesión.",
+    techDef_en: "Localised swelling from fluid build-up, a common and temporary inflammatory reaction after a session.",
+    mechanism_es: "La inflamación hace que los pequeños vasos sean temporalmente más permeables. El líquido se escapa entonces a los tejidos vecinos y los hincha. El frío aplicado en la sesión limita esta reacción, que desaparece en unos días.",
+    mechanism_en: "Inflammation makes the small vessels temporarily more permeable. Fluid then leaks into the surrounding tissues and makes them swell. The cold applied during the session limits this reaction, which subsides within a few days.",
+    patientWords_es: "Una pequeña hinchazón tras la sesión es normal y desaparece en unos días.",
+    patientWords_en: "A little swelling after the session is normal and goes away within a few days.",
   },
   {
     term: "Phlyctène",
     techDef: "Cloque, bulle de liquide sous l'épiderme. Apparition possible dans les 24-48h post-séance.",
     mechanism: "Quand la chaleur résiduelle décolle légèrement la couche superficielle de la peau (épiderme) de la couche en dessous, du liquide s'accumule dans l'espace créé et forme une bulle. Il ne faut jamais la percer, pour éviter l'infection.",
     patientWords: "Une cloque. Surtout ne pas la percer. Si elle apparaît, on prévient le médecin.",
+    term_es: "Flictena (ampolla)", term_en: "Blister",
+    techDef_es: "Ampolla, burbuja de líquido bajo la epidermis. Posible aparición en las 24-48 h posteriores a la sesión.",
+    techDef_en: "A blister, a bubble of fluid under the epidermis. May appear within 24-48 h after the session.",
+    mechanism_es: "Cuando el calor residual despega ligeramente la capa superficial de la piel (epidermis) de la de debajo, el líquido se acumula en el espacio creado y forma una ampolla. Nunca hay que pincharla, para evitar la infección.",
+    mechanism_en: "When residual heat slightly lifts the surface layer of skin (epidermis) from the layer below, fluid gathers in the space created and forms a blister. It must never be popped, to avoid infection.",
+    patientWords_es: "Puede aparecer una ampolla. Nunca la pinches tú mismo: el médico decidirá si hay que evacuarla.",
+    patientWords_en: "A blister may appear. Never pop it yourself: the practitioner will decide if it needs draining.",
   },
   {
     term: "Phototype",
     techDef: "Classification de Fitzpatrick (I à VI) selon la réaction de la peau au soleil. Détermine le réglage du laser.",
     patientWords: "La classification de votre type de peau, qui aide le médecin à régler le laser à la bonne intensité.",
+    term_es: "Fototipo", term_en: "Phototype",
+    techDef_es: "Clasificación de la piel según su reacción al sol (escala de Fitzpatrick, de I a VI). Determina la prudencia y los ajustes del láser.",
+    techDef_en: "Classification of skin by its reaction to the sun (Fitzpatrick scale, I to VI). It determines caution and laser settings.",
+    patientWords_es: "Tu tipo de piel según cómo reacciona al sol. El médico lo evalúa para ajustar el láser con seguridad.",
+    patientWords_en: "Your skin type based on how it reacts to the sun. The practitioner assesses it to set the laser safely.",
   },
   {
     term: "Picoseconde",
     techDef: "Un milliardième de seconde (10⁻¹² s). Durée des impulsions du PicoWay (300-450 ps).",
     patientWords: "Des impulsions ultra-courtes, ce qui permet de fragmenter l'encre sans abîmer la peau autour.",
+    term_es: "Picosegundo", term_en: "Picosecond",
+    techDef_es: "Una milbillonésima de segundo (10⁻¹² s). Duración de los impulsos del PicoWay (300-450 ps).",
+    techDef_en: "One trillionth of a second (10⁻¹² s). The duration of the PicoWay's pulses (300-450 ps).",
+    patientWords_es: "Impulsos ultracortos, lo que permite fragmentar la tinta sin dañar la piel de alrededor.",
+    patientWords_en: "Ultra-short pulses, which shatter the ink without harming the surrounding skin.",
   },
   {
     term: "Effet photothermique",
     techDef: "Mécanisme des anciens lasers (nanoseconde) : fragmentation par la chaleur, avec plus de risque pour les tissus environnants. À distinguer du photoacoustique.",
     patientWords: "L'ancienne méthode, qui chauffait plus la peau. Notre PicoWay travaille autrement, par onde de choc.",
+    term_es: "Efecto fototérmico", term_en: "Photothermal effect",
+    techDef_es: "Mecanismo de los láseres antiguos (nanosegundo): fragmentación por el calor, con más riesgo para los tejidos de alrededor. A distinguir del fotoacústico.",
+    techDef_en: "Mechanism of older lasers (nanosecond): fragmentation by heat, with more risk to surrounding tissue. To be distinguished from photoacoustic.",
+    patientWords_es: "El método antiguo, que calentaba más la piel. Nuestro PicoWay trabaja de otra forma, por onda de choque.",
+    patientWords_en: "The old method, which heated the skin more. Our PicoWay works differently, by shock wave.",
   },
   {
     term: "Pigment",
     techDef: "Particule colorée déposée dans le derme lors du tatouage. Sa couleur, sa profondeur et sa composition déterminent la réponse au laser.",
     patientWords: "L'encre déposée sous la peau. C'est elle que le laser vient cibler et fragmenter.",
+    term_es: "Pigmento", term_en: "Pigment",
+    techDef_es: "Partícula coloreada depositada en la dermis durante el tatuaje. Su color, profundidad y composición determinan la respuesta al láser.",
+    techDef_en: "A coloured particle deposited in the dermis during tattooing. Its colour, depth and composition determine the response to the laser.",
+    patientWords_es: "La tinta depositada bajo la piel. Es la que el láser busca y fragmenta.",
+    patientWords_en: "The ink deposited under the skin. It's what the laser targets and breaks up.",
   },
   {
     term: "Ray Tattoo Profile (RTP)",
     techDef: "Évaluation Ray studios établie par le médecin : caractéristiques du tatouage, phototype, estimation du nombre de séances et du pronostic.",
     patientWords: "Le profil de votre tatouage établi par le médecin lors de la consultation. Il décrit votre parcours estimé.",
+    term_es: "Ray Tattoo Profile (RTP)", term_en: "Ray Tattoo Profile (RTP)",
+    techDef_es: "Evaluación de Ray studios realizada por el médico: características del tatuaje, fototipo, estimación del número de sesiones y del pronóstico.",
+    techDef_en: "Ray studios assessment carried out by the practitioner: tattoo characteristics, phototype, estimate of the number of sessions and prognosis.",
+    patientWords_es: "El perfil de tu tatuaje que el médico establece en la consulta. Describe tu recorrido estimado.",
+    patientWords_en: "Your tattoo's profile, set by the practitioner at the consultation. It describes your estimated journey.",
   },
   {
     term: "Taille du spot",
     techDef: "Diamètre du faisceau laser, en millimètres. Un grand spot pénètre plus profondément, un petit reste plus superficiel.",
     patientWords: "La largeur du faisceau, que le médecin choisit selon la profondeur de votre encre.",
+    term_es: "Tamaño del spot", term_en: "Spot size",
+    techDef_es: "Diámetro del haz láser, en milímetros. Un spot grande penetra más profundo, uno pequeño queda más superficial.",
+    techDef_en: "Diameter of the laser beam, in millimetres. A large spot penetrates deeper, a small one stays more superficial.",
+    patientWords_es: "El ancho del haz, que el médico elige según la profundidad de tu tinta.",
+    patientWords_en: "The width of the beam, which the practitioner chooses based on the depth of your ink.",
   },
   {
     term: "Système lymphatique",
     techDef: "Réseau de drainage de l'organisme. Il transporte les fragments de pigment captés par les macrophages vers les ganglions, où ils sont éliminés.",
     patientWords: "Le réseau qui évacue les déchets du corps. C'est par lui que l'encre fragmentée s'en va, ce qui prend du temps.",
+    term_es: "Sistema linfático", term_en: "Lymphatic system",
+    techDef_es: "Red de drenaje del organismo. Transporta los fragmentos de pigmento captados por los macrófagos hacia los ganglios, donde se eliminan.",
+    techDef_en: "The body's drainage network. It carries the pigment fragments captured by macrophages to the lymph nodes, where they are eliminated.",
+    patientWords_es: "La red que evacúa los desechos del cuerpo. Por ella se va la tinta fragmentada, lo que lleva tiempo.",
+    patientWords_en: "The network that clears the body's waste. The fragmented ink leaves through it, which takes time.",
   },
 ];
 
 // ===== PHOTOS DU MATERIEL (embarquees en base64) =====
-const IMG_PICOWAY = "data:image/jpeg;base64,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IX0y96rb5Piy1OvFoHvICDdNn9dnqL9X/EqxUCwt3Nn6Ef7lp9+v8VPQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERBDu9K2stc0ZGobvNPIjVUNNUissrHDDtC05W0yY6N2eGDn3LR7C4Cnez8nfOPDK/M/r1YrFLx1nk93pOeWvPsFqgrDUGijMwON4s3nAchlTuihwD5zvEYwrC7Pp6R/SOlja4jQOdqfYtVuN2kfA9tKAZceaXjDM+zVfj/Y9a84vMy+rF4mOSymnpqcFzyxvzK1K+fSXZbQHM6bp5W8GMOT8lpO0Fq2yu07my1UfQng2F+43HeoNr+jV3TtkuVQC0amOM8fEr7/AKb9K9LpRFtW2fDlbUtPRstJtjd9pqSaaAOoqYO3WEcX81VT2qokqhI7Mkz/AKtudSSe1bbBQxU9K2GGMRwxjAAGAAstppmVNWa4j+jx5ZCT+Wfyn+HYPavoej0a31v/ACjFXDWvtp8XVtlhjFs2WoqLgWgvd4lSHVI+0qt9bgYHAaKNJXacV+mw+Tlbvq8aZUd9YOaqhUSTPDImukcexoyVb0WyV9uOHCm6CM/lSnd+SqIklYOajvrMnA1PJbtQ/RtC0h1fWvlPayMbo962W37OWq2AdWoow77bhvO95QcxobFebpg09HIGH8t/mj5rZKD6OHuw64VuObIR/ErfeAwEQVVv2ZtNtwYKNhePy3+c75q14DREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQQqyzW64VkFVV0cU89OcxvcNWnOR466rWtvLY11uqa1kf124C2QekHZA4+C3Ja9tkC6107C4tY6bDsa/kOPDt4cEH5gt30wXKjmcy6UDZ4WvLekiO64a9oOh+S6bs3tLT7T2l9yt8NS+mif0cr+iOI3YzgnwXP8AbDZiio9hJbs6Po6ituFS5umPMDxu/c73rrf/AKb5N76JywAAR187cgYzo068+KsSmHmKra8AteHBSG1GWlp1B4g8Ct9uGzNquRLpaVscp/vIfMd8tD7VVDYSmbA5orpjJvEseWjQciO3x0VyNcgdFC3dijZG0nOGNAHyUgStPavVx2buNrjfMQ2eBgy58Z9EcyDqqCpYZqmjqRvE08m9ug43mkEHjy0KomOcHbZW8con/wCX/wCVsmQFprqpsG1FtmecMc90Bd2AuYQ33kAe1bWZVhWYuXwvUcyrwZhzQSDIvhkUUzLBLWRxgl8jGD/E4BBOMq8OmVS68UpJDJxIR2RgvPyBWN1xe4fV0tQ79JoZ+8QgtXT96qrtK6tkprbD501TK3DRyzp8/uKivmu9ZVCloaTfkc3P1QMpbr26Bo9uVueyGxz7TOblcnCWvePNbne6PPEk9ruzTQdiqNsgibBTxwt9GNoYPADC9oiiiIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAixzzxU0RkleGtHaogvNMWFwEmB9pu796531aU/dOGopa3SHq8VnUbTPNxdu7rRzJWsWqCWXEUXpnnwC+3W6PuVS2KIF4Bw1rdclX9ktj6GnL58dPJxA4NHJfB1aT+o+orER8Ffm9lZ4FJz1lqe2H0eC6NZWUk0vWoRlkjT57eeOwt/wrnUsl1tUhhudC+ZjONRTNLh+0zi1foVQq60UNx1qadrnDg8aOHtC+xqek0tSu2Yeemtek5iXA2X+0POOvxRnk87p9xX0Xq3yO3KefrUvYynYZCfcuuVX0e2yofvCRw/TjY/5kL3TbA2+Abrp5i37LA2MH4QvFH6Vp55zLv7ZbHRyXqlRWAPuQNHSHhTb2ZZP0seiO4K4prfdLkQyht0zo2gBoazda0dnFdYotnLTQHMFDFv8A23jed7yrMANAAAAHYF9HS0aaNdtIeW97XnNnMaH6O7tU4NZPFSN5A77vlothofo6tNPh1U6Wsf8A4jut9wW2ouzCNSW2ioGBlLSxQgfZaApKIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgKBfLc662iamjc1k2j4Xu4NeNWk93Ye4lT0Qfmn6Q9ndv9rrhTWem2Wr2shJJkfuCLJ/3md0jv0zyHBdq+jLY12wmwVFZZpWy1QLpqh7PRMjzkgcwNBnuW2IgIiIId3i6ey1keA7ehcMHt0XKdo7dQUFPT1prprXFBAJXyRykMOHa7zTkEEacPBdiIBBBGQuQ/SXRQ1touNujOWxR9ESRwIcHfcVBox20tFYynpLhKwzVjGubFGx78h3o5ABweGnHK2h7dprfROdAbhKGs3o2VFKZCeQ3sB3vyVy76UdipNlr811slfExxaWljt04I3mO07QQ4ewL9RbCXybaLYKzXWd39IqKZpmwf7wea75gqo01lDeJDul05dyZSYx78rPHs5eZ8EtriD9otjH3BdKyeZXxFc+j2GrpSDKxg/W1DnfIKZBsAWEOM1LER9iDeI9pwt1RB+Xtt9ttpLBtTXWak6q2KmnMTJjESXAO3c4JwFQ7V3DbC37VtoKm7zClcGSN6MBgcD4cRkFdB+k6zCn21roKh74Ka4sM7JGkecxxaXjJHZI32ZbzXOvpIvkM17phE/eMFMxhd4Fx/iiP1dsxcIrrstbq+GNkTamBr3MjADQ7GHcO8FWq1X6MKKpoPov2fgq2uZP1USPa7i3fJeAfY4LakUREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREEG7W+W4U7GQ1HQPY7ezjIKqm7LSyu/pdwe9v2WDC2NF59T02lqW33jMtxqWrGIlDoLVR21m7TxBp7XHVx9qmIi71rFYxDMznqIiKoIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiIC51tdQQuvNxoaid9PFcWNlEjcYIIa1w100cwH9oc10VU+0uzdNtLbhTyzTUs8RLoKqAgSQuIwcZ0II0LToUH5z+mm/wT3emp4HteIoI2lwOc4Lv5rt30O0dRR/RJYm1IxJLE6cA9jXvLm/IhazTf8Ap5sct9Fyvl5uF6Gd4wSBsbXn/EW6kdwwutsYyKNscbQxjAGta0YAA0AAQfUREBERBS7UbKWza62No7kyVpjdvwzwPMcsLsYy1w4acRwPatIs/wD6f9j7bePwlWyV95ma8Pa2ulBZvZzkhoG97dF1FEBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREH//Z";
+const IMG_PICOWAY = "data:image/jpeg;base64,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lGrYxqAepPM+C8PqsSv1O2DgRMU+8u9h0x039dc78LG225sNKx00QMrm67wzgHl7lrW0vwc0NzcKmhYYqlnmFjtx7PBr+n5JyFvBOUXu4XT4eFhRg0xtDo1YlVVWeZ3cGuFm2ltchjd3eoxwFSx1O/6TQWn7F4xQ3tw++UFHH4muBH2Nyu/OaHN3XAOHQjIXh9zqLe3u50+917Jv7F1avS+lqm80/wAy5o6vFj3cQisVRXvDKmZ9SD/+NQxuAd4F/nEerC2ek2MvdTTsgjpIbZSsGGskcG4H5rc49S6e1rWN3WtDR0aMBSu5g4GHgRlw4s4K8Squb1S0qg+DakjIdX101Q7m2ICNvv1K2Oh2etNuwaagha4fLc3ed7zlWSLmYEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERBKIiCEREBERAUqEQSoREBYV2tkd3tz6SSWSFxw6OaLG/E8cHNzpkdDoQSDoVmog4hW/uf6+/wC0QrNoNqW1FI047OmptyR7emp3WadAcLtFHR09vooKOkibDT08bYoo28GNaMAD2Be6ICIiCvvcBqLRKwDJBa7HqK4/8Ld7FppKquZF21Y4sgp98bzWuc7VxHPDQcDrhdw3Q/yTwdouTXKiptoLhZhXUoeyWqZJub3mPaHEZ64IQc2sO3wuO1dDs/FC6mNVMKcTVrxutcfN83J1OB01XV//AApcyRkjBbo5BIx7nMa9nBwLhgDXIBHtXC/hEsMNt21nNNJ3cwSEx7pxgAlzSPVkD2L9Z2qs+6Fmoq0nJqaeOY+tzQT+lBrbdhxnRtCwdeyLj9oWVDsdHH51YW+EUQb+tbMiCjGytDny5KmX1yY/QF8XLZ63sstd2FC18gp5C3L3E53DjXPHKv09x8DzQfkKybN1FTtlbfuncRPSTzF245xc/BDjg5/7wvG00lFsrt/3gOAdQVeWEci1+h9w+1dC2qpqP4Pdo5xcImxwvLpKKpdET2kZ+S1wHnN80tJHAHgdOb7LWmv+EX4SY4aCJ5gkqRNUygZbDFvbziTw4aDqUH7JznUDAOoRCST08EQEREBERAREQEREBERAREQEREBERAREQEREBERAREQOSKVCAiIgLAnsdtqZzNLSMdI45JyRk+rKz0WK8OjEi1cRP+VpqmntNnjT0lPSM3aeCOJp5MbjK9kRaiIpi0JM33kREVBSoUoCIoQEREBERAREQEREBERARFKCMIpRAREQQiIgIiICIiApRQgIiICIiAiIgIiICIiCVClEEIiIClQiApUIgIiICIiAiIglFCICKVCAiIgIiICIiAiIgIiICIiBwXONoq2n2VvT21ckdLBO50tLNKDuOBOXMDgDh7STpzaQRzXR1j11vo7nRvpK+lhq6d/nRTMD2n2FB+PNqKut25+EU0VpidUT1cghia0a66ZPQAanpqv2FbqJlttVJQxneZSwshB6hrQ3P2LGtez1mshcbVaaGgL9HGnp2xk+sgZVkgIiICIiDwq6Omr6d1PV00NTC7jHNGHtPsIISkoqSgg7GjpYKWL5kMbY2+4AL3RAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREEqFKhAREQEREBSoRBKKFKCEREBERAREQEREBERAREQEREBERAREQFKhSgKFKhAREQEREBERAREQEREBSoRBKKFKAoREBERAREQE5oiAiIgIiICIiAiIg//2Q==";
 const IMG_CRYO = "data:image/jpeg;base64,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9FVxCWnqGGORh5OB5r5s1Tpat0FeHUlUx77TI7+qVmMtx3Mee5w5ea+mlj11BSXOiko66miqaaUcL4pWhzXDzCsuh8zQSse3ia4OB7wVr9Q3+C026QMla6reOGNjTk58V2K4dAWkqmVz6Ka42xrjksp5zwn4Hks/TXQro7TVbHXMon11ZGctmq38eD48PLPmt3PcTTh+hega/arghr7rIbVb5jxEvH00g8m92fNfSulNI2jRllZbLPTCGIbvcd3yO8XHvK3fIbIuaiIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIg5r0z2WaosdHfKZhe62SEzNaNzE7Zx+Gx+a5dC5sjGvY4Oa7cEd6+mZI2TRPilY18bwWua4ZBB5grhWstBV2jZn1loppq+yvcXGKIcUlLk5wB3t/JbxuksaNrBlYuoZW02lrg9xwDC5o9SFiDVtjjYTJXxxubzY4EOB8CFgx0N76VK1lq09SSNt7HZmq5BhnxP8FrLKaSRzu2VMVHVR1cxOIe0ADgk+C7f0H6SuOodYS63u9KYadgPsoc3Ac7GAR5Ad/iphpr9HfStoqIKu5Pmu08bRmOXAi4vHhHP0K6zFFHBCyKJjY42ANa1owAPABcY0qREVBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREGprNK2C4SiWqs1DM8HPE6BufyWwpaOmoYBDSU8VPEPsRMDR8gryICIiCMVuvKKirp6V1qvMroXlhfFRFzHEd4Odwlp17bbvfY7RFR3GCre0v4ain4A1oGcnfIWTqzVA07QRsp2GqudY7qqOlbuXv8AEj7o/wBFa0npv+j9JPXXGb2q7Vn0tbUuOfPgB+6P+u5BtKC809xuVwooY5g+3vbHI97MMc4jPZPfhZ655/TC7M6K6vUEkzPbJ6hzKP6IYa0ycLRj7WwK91BdNXWGzUl8qLhTBxliidbGQAh3F3F/Mv58sAd3JB0JFAtQ3HVdjiortPcaUCoq44DbGQAtAefd6w7lwHM7LO1DfL0zXlvsVkMOX0z5p+ublrBkhrieeBjkOZwEEvRQCO5aspNZy6cZcaW5PmpRUCplpxGKXJwSWt97ybnvHms2zXW72/Wlxs12ukdxpaeiFYajqREYt+RA7sZKCZIoNbbnftWQPudLe6WxUL3EUkJiZJJI0HHHJxHYHwCyKTWFS/QF2udUIWXC1mWCQx7xukbs1w8jkHCCYoonpsaquTLbc7jcIKakdEC+jbAOOXLfec77JJ3wOQUsQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBFD75reS068t1hZTRSQVPV9dK4nijL3ENx3dw5+Kl73sijdJI4MYwFznE7ADmUHqKI6P1nUaru9zjbRxw0FKGmGTJ45A4nhJHIZAz8Qpfg+BQeIi9wg8Repg5xjdB4i1NmvzL1XXSKCBzIbdUezda4/WPAy7A8Bstvg+BQeIi9wfBB4iIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgLEutwbarRVV74pJm08Zf1cTcuf4ADzKy17nB2OEHJtO6mo47zU6h1BSXSa7TZZEyOhe6Oli7mtPj5/zKk9y1jT3TR98mttJcGy09MWgTUroy5z8tHCO/4KZ8bvvu+a84nZ94/NBzqutEkdp0LpxsLzGJo5qjDDhoY3iPEe7dx5rbaxhkuep9L20RPfCax1XMQ0loDBkZPLnlS/J8TumTjGThBENVxS3LWelqARvdDHO+tmcGktHAOzk8ueV5p+GWs6RdTXOSN7WQiKihc5pAIaMuIzz38FMMnGMnCZJ5klBENMQyVeudU3WWJ7G9bHRQl7SMtYNyM8xnG4WDbbZUXuv1zU8L4n1hNBTue0ty1rCMjPdnG6npJPMkoSTzJKDkds/oxSWGGhrtISz6hhZ1L6b2N5Msg2DuP3cHY5W3vlnnptA2+zNttPR1V1rYWVMNEx3Vsy7Ls8+QABPJdFyfEpkjkcIPA1rAGtGGt2A8u5ERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREcXNaS0cTgMgZxk9yDj99aa+q1dqFu/wCrq+ljicPCJw4sKZaxq33mpo9LUUhY65DrqyRp+ppRu74u5BY1q0jXx9Gl1tNayMXK4meV4Dw4cbjlva5dwVyzadu9Dpy7VlUyOTUNwgMQAkHDG1rOCNgdyx3nzKCNWm9O0/0e3i/UUbWT3O4GGkGMhjR2Gbd/CAfkFbqXaaisss9Pc71JqBsZkZWmOoDnTAZ5Y4eEnbHgpNJomqf0a22zQyRwXKg6uoY4nLOuaS4gkdxyRlX5na0vwho5qaLT8AcHVFVDVdbK8A7tjA93PiUGFc71cr1S6Ys0E0lDV3qET1ksY4XxxNbl4b4EnPothDodlpvNvr7DWTUbYpMVkc0z5W1EeNxgk9rzV3UdmuRv9r1BaIo6qpoGPhkppZODrY3c8OPJw81Va6O/3DUQu14xbqWGIxwW+Gfj4ieb5CNifAdyDTWSgbr+etvN4knktzZ3wUNGyVzIw1pwXu4SMuJVVnDKC66p01PU1FRaaSnbUR8czuOJrm5dGH5yrlpoNT6Qpp7Tb7VTXai658lLMakRGMOOeF7SO4+Cuw6QuUOlL8JKmKe/XpjjLKOzGDjAY09wAyM+aCOafEOkejB+qo43uudY1wiD5HFvbfhnZzjuznmcK1nTT7O6apul6mv7oy/23q6hrmy4yA0AYDQdsYUndpu5Xro2ZZKylitdZTCNtPiXrW5jxwuJHLJztvhVzP1xeqWO3yUsFjBwKiviquseQOfVNHInz5INfU3+73bT2lrXFNJR3K+DFTO1vC+ONnvuHgThbMaEZbLlQV1grJ6SWGUe0ieZ8raiPvBB+15q/qSx3F9ys95tLWVVZai5hhnk4evjcMHt9zu/PmvbdSagueoorpdmi10dKxzYaCGo6wyuPN8hGxx3BBJ14iICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiIP/9k=";
 
 // ===== COMPRENDRE (vulgarisation médicale) =====
 const EDUCATION = [
   {
     id: "how-laser-works",
-    title: "Comment fonctionne le laser ?",
+    title: "Comment fonctionne le laser ?", title_es: "¿Cómo funciona el láser?", title_en: "How does the laser work?",
     intro: "Pas de coupure, pas de chirurgie. Le laser envoie de la lumière à une longueur d'onde précise, qui traverse la peau jusqu'à l'encre du tatouage. Cette encre éclate en mini-particules. C'est ensuite le corps qui fait le travail.",
+    intro_es: "Sin cortes, sin cirugía. El láser emite luz a una longitud de onda precisa que atraviesa la piel hasta la tinta del tatuaje. Esa tinta estalla en micropartículas. Después es el cuerpo quien hace el trabajo.",
+    intro_en: "No cutting, no surgery. The laser sends light at a precise wavelength that passes through the skin to the tattoo ink. That ink shatters into tiny particles. Then the body does the work.",
     sections: [
       {
-        title: "Le principe en 3 étapes",
+        title: "Le principe en 3 étapes", title_es: "El principio en 3 pasos", title_en: "The principle in 3 steps",
         items: [
-          { label: "1.", strong: "La lumière cible l'encre.", text: "Le laser traverse l'épiderme sans l'abîmer et atteint les pigments déposés dans le derme." },
-          { label: "2.", strong: "L'encre éclate.", text: "Les pigments absorbent l'énergie du laser et se fragmentent en minuscules particules." },
-          { label: "3.", strong: "Le corps évacue.", text: "Les macrophages (les « éboueurs » du corps) ramassent ces fragments et les évacuent par le système lymphatique." },
+          { label: "1.", strong: "La lumière cible l'encre.", strong_es: "La luz apunta a la tinta.", strong_en: "The light targets the ink.", text: "Le laser traverse l'épiderme sans l'abîmer et atteint les pigments déposés dans le derme.", text_es: "El láser atraviesa la epidermis sin dañarla y alcanza los pigmentos depositados en la dermis.", text_en: "The laser passes through the epidermis without harming it and reaches the pigments in the dermis." },
+          { label: "2.", strong: "L'encre éclate.", strong_es: "La tinta estalla.", strong_en: "The ink shatters.", text: "Les pigments absorbent l'énergie du laser et se fragmentent en minuscules particules.", text_es: "Los pigmentos absorben la energía del láser y se fragmentan en partículas diminutas.", text_en: "The pigments absorb the laser's energy and break into tiny particles." },
+          { label: "3.", strong: "Le corps évacue.", strong_es: "El cuerpo los evacúa.", strong_en: "The body clears them.", text: "Les macrophages (les « éboueurs » du corps) ramassent ces fragments et les évacuent par le système lymphatique.", text_es: "Los macrófagos (los «basureros» del cuerpo) recogen esos fragmentos y los evacúan por el sistema linfático.", text_en: "Macrophages (the body's 'scavengers') collect these fragments and clear them via the lymphatic system." },
         ],
       },
       {
-        title: "Pourquoi 6 à 8 semaines entre deux séances ?",
+        title: "Pourquoi 6 à 8 semaines entre deux séances ?", title_es: "¿Por qué de 6 a 8 semanas entre sesiones?", title_en: "Why 6 to 8 weeks between sessions?",
         text: "Le laser ne fait pas tout : il casse les pigments, mais c'est le corps qui les évacue. Ce nettoyage prend du temps. Vouloir aller plus vite serait inutile, et risqué pour la peau.",
+        text_es: "El láser no lo hace todo: rompe los pigmentos, pero es el cuerpo quien los evacúa. Esa limpieza lleva tiempo. Querer ir más rápido sería inútil y arriesgado para la piel.",
+        text_en: "The laser doesn't do everything: it breaks the pigments, but the body clears them. That clean-up takes time. Trying to go faster would be pointless, and risky for the skin.",
       },
       {
-        title: "Pourquoi plusieurs longueurs d'onde ?",
+        title: "Pourquoi plusieurs longueurs d'onde ?", title_es: "¿Por qué varias longitudes de onda?", title_en: "Why several wavelengths?",
         text: "Chaque couleur d'encre absorbe une longueur d'onde précise. Sans la bonne longueur d'onde, le laser passe à côté du pigment. C'est pour ça qu'on dispose de trois longueurs d'onde au centre.",
+        text_es: "Cada color de tinta absorbe una longitud de onda precisa. Sin la longitud de onda correcta, el láser no alcanza el pigmento. Por eso disponemos de tres longitudes de onda en el centro.",
+        text_en: "Each ink colour absorbs a precise wavelength. Without the right wavelength, the laser misses the pigment. That's why we have three wavelengths at the centre.",
         wavelengths: [
-          { nm: "532", gradient: "linear-gradient(135deg, #DC2626 0%, #F97316 50%, #FACC15 100%)", inks: "Rouge, jaune, orange", phototypes: "I à III" },
-          { nm: "730", gradient: "linear-gradient(135deg, #2563EB 0%, #22C55E 100%)", inks: "Vert, bleu", phototypes: "II à IV" },
-          { nm: "1064", gradient: "linear-gradient(135deg, #1F2937 0%, #4B5563 100%)", inks: "Noir, marron, vert, bleu, violet", phototypes: "I à VI" },
+          { nm: "532", gradient: "linear-gradient(135deg, #DC2626 0%, #F97316 50%, #FACC15 100%)", inks: "Rouge, jaune, orange", inks_es: "Rojo, amarillo, naranja", inks_en: "Red, yellow, orange", phototypes: "I à III", phototypes_es: "I a III", phototypes_en: "I to III" },
+          { nm: "730", gradient: "linear-gradient(135deg, #2563EB 0%, #22C55E 100%)", inks: "Vert, bleu", inks_es: "Verde, azul", inks_en: "Green, blue", phototypes: "I à VI", phototypes_es: "I a VI", phototypes_en: "I to VI" },
+          { nm: "1064", gradient: "linear-gradient(135deg, #1F2937 0%, #4B5563 100%)", inks: "Noir, marron, vert, bleu, violet", inks_es: "Negro, marrón, verde, azul, violeta", inks_en: "Black, brown, green, blue, purple", phototypes: "I à VI", phototypes_es: "I a VI", phototypes_en: "I to VI" },
         ],
       },
       {
-        title: "Le givrage : le signe que ça marche",
-        text: "Pendant le tir, on observe souvent un blanchiment instantané de la zone, qu'on appelle le « givrage ». C'est un micro-dégagement de gaz provoqué par la fragmentation des pigments. C'est le repère visuel que le médecin recherche : il indique que la fluence est adaptée. Ce givrage disparaît en quelques minutes.",
+        title: "Le frosting : le signe que ça marche", title_es: "El frosting: la señal de que funciona", title_en: "Frosting: the sign it's working",
+        text: "Pendant le tir, on observe souvent un blanchiment instantané de la zone, qu'on appelle le « frosting ». C'est un micro-dégagement de gaz provoqué par la fragmentation des pigments. C'est le repère visuel que le médecin recherche : il indique que la fluence est adaptée. Ce frosting disparaît en quelques minutes.",
+        text_es: "Durante el disparo se observa a menudo un blanqueamiento instantáneo de la zona, llamado «frosting». Es un micro-desprendimiento de gas provocado por la fragmentación de los pigmentos. Es la referencia visual que busca el médico: indica que la fluencia es adecuada. El frosting desaparece en unos minutos.",
+        text_en: "During the shot you often see instant whitening of the area, called 'frosting'. It's a micro-release of gas from the pigment fragmentation. It's the visual marker the practitioner looks for: it shows the fluence is right. The frosting fades within a few minutes.",
       },
       {
-        title: "Toutes les encres ne partent pas pareil",
+        title: "Toutes les encres ne partent pas pareil", title_es: "No todas las tintas se van igual", title_en: "Not all inks come off the same",
         text: "Le noir et le bleu foncé répondent le mieux : ils absorbent un large spectre de longueurs d'onde. Les couleurs vives (rouge, jaune, vert) sont plus capricieuses. Et certaines encres cosmétiques contenant des oxydes métalliques peuvent virer ou s'assombrir, d'où la prudence sur le maquillage permanent.",
+        text_es: "El negro y el azul oscuro responden mejor: absorben un amplio espectro de longitudes de onda. Los colores vivos (rojo, amarillo, verde) son más caprichosos. Y algunas tintas cosméticas con óxidos metálicos pueden virar u oscurecerse, de ahí la prudencia con el maquillaje permanente.",
+        text_en: "Black and dark blue respond best: they absorb a wide range of wavelengths. Bright colours (red, yellow, green) are trickier. And some cosmetic inks containing metallic oxides can shift or darken, hence caution with permanent makeup.",
       },
     ],
   },
   {
     id: "equipment",
-    title: "Le matériel",
+    title: "Le matériel", title_es: "El material", title_en: "The equipment",
     intro: "Le laser n'est qu'une partie de l'équipement. Connaître les éléments de la machine et le matériel qui l'accompagne aide à comprendre le déroulé d'une séance et à répondre aux questions des patients.",
+    intro_es: "El láser es solo una parte del equipo. Conocer los elementos de la máquina y el material que la acompaña ayuda a entender el desarrollo de una sesión y a responder a las preguntas de los pacientes.",
+    intro_en: "The laser is only part of the equipment. Knowing the machine's parts and the equipment around it helps you understand how a session unfolds and answer patients' questions.",
     sections: [
       {
-        title: "Le PicoWay et sa pièce à main",
-        image: {
-          src: IMG_PICOWAY,
-          alt: "Schéma annoté du laser PicoWay et de sa pièce à main",
+        title: "Le PicoWay et sa pièce à main", title_es: "El PicoWay y su pieza de mano", title_en: "The PicoWay and its handpiece",
+        image: { src: IMG_PICOWAY, alt: "Schéma annoté du laser PicoWay et de sa pièce à main",
           caption: "À gauche : la machine complète. À droite : le bout de la pièce à main, avec la distance gauge jaune.",
-        },
+          caption_es: "A la izquierda: la máquina completa. A la derecha: el extremo de la pieza de mano, con la distance gauge amarilla.",
+          caption_en: "Left: the full machine. Right: the tip of the handpiece, with the yellow distance gauge." },
       },
       {
-        title: "Les éléments de la machine",
+        title: "Les éléments de la machine", title_es: "Los elementos de la máquina", title_en: "The machine's parts",
         parts: [
-          { name: "Le bras", desc: "Bras articulé qui guide le faisceau depuis le corps de la machine jusqu'à la pièce à main. Il se déplie et se range après chaque séance." },
-          { name: "La pièce à main", desc: "La partie que le médecin tient et applique sur la peau. C'est elle qui délivre le faisceau laser." },
-          { name: "Le panneau d'affichage tactile", desc: "L'écran où le médecin règle les paramètres de la séance : fluence, taille du spot, fréquence." },
-          { name: "L'arrêt d'urgence", desc: "Le bouton rouge qui coupe immédiatement le laser en cas de besoin. Toujours accessible." },
+          { name: "Le bras", name_es: "El brazo", name_en: "The arm", desc: "Bras articulé qui guide le faisceau depuis le corps de la machine jusqu'à la pièce à main. Il se déplie et se range après chaque séance.", desc_es: "Brazo articulado que guía el haz desde el cuerpo de la máquina hasta la pieza de mano. Se despliega y se recoge tras cada sesión.", desc_en: "An articulated arm that guides the beam from the machine body to the handpiece. It unfolds and is stowed after each session." },
+          { name: "La pièce à main", name_es: "La pieza de mano", name_en: "The handpiece", desc: "La partie que le médecin tient et applique sur la peau. C'est elle qui délivre le faisceau laser.", desc_es: "La parte que el médico sostiene y aplica sobre la piel. Es la que emite el haz láser.", desc_en: "The part the practitioner holds and applies to the skin. It delivers the laser beam." },
+          { name: "Le panneau d'affichage tactile", name_es: "El panel táctil", name_en: "The touchscreen panel", desc: "L'écran où le médecin règle les paramètres de la séance : fluence, taille du spot, fréquence.", desc_es: "La pantalla donde el médico ajusta los parámetros de la sesión: fluencia, tamaño del spot, frecuencia.", desc_en: "The screen where the practitioner sets the session parameters: fluence, spot size, frequency." },
+          { name: "L'arrêt d'urgence", name_es: "La parada de emergencia", name_en: "The emergency stop", desc: "Le bouton rouge qui coupe immédiatement le laser en cas de besoin. Toujours accessible.", desc_es: "El botón rojo que corta inmediatamente el láser si hace falta. Siempre accesible.", desc_en: "The red button that cuts the laser immediately if needed. Always accessible." },
         ],
       },
       {
-        title: "Le bout de la pièce à main",
+        title: "Le bout de la pièce à main", title_es: "El extremo de la pieza de mano", title_en: "The tip of the handpiece",
         parts: [
-          { name: "La distance gauge", desc: "La pièce jaune amovible au bout. Elle maintient la pièce à main à la bonne distance de la peau pendant le tir." },
-          { name: "La fenêtre", desc: "La lentille de sortie, par où passe le faisceau. Elle se nettoie avant chaque patient et se remplace si elle est abîmée." },
-          { name: "La bague de zoom", desc: "La bague crantée qui règle la taille du spot, c'est-à-dire le diamètre du faisceau qui arrive sur la peau." },
+          { name: "La distance gauge", name_es: "La distance gauge", name_en: "The distance gauge", desc: "La pièce jaune amovible au bout. Elle maintient la pièce à main à la bonne distance de la peau pendant le tir.", desc_es: "La pieza amarilla extraíble del extremo. Mantiene la pieza de mano a la distancia correcta de la piel durante el disparo.", desc_en: "The removable yellow piece at the tip. It keeps the handpiece at the right distance from the skin during the shot." },
+          { name: "La fenêtre", name_es: "La ventana", name_en: "The window", desc: "La lentille de sortie, par où passe le faisceau. Elle se nettoie avant chaque patient et se remplace si elle est abîmée.", desc_es: "La lente de salida por donde pasa el haz. Se limpia antes de cada paciente y se sustituye si está dañada.", desc_en: "The exit lens the beam passes through. It's cleaned before each patient and replaced if damaged." },
+          { name: "La bague de zoom", name_es: "El anillo de zoom", name_en: "The zoom ring", desc: "La bague crantée qui règle la taille du spot, c'est-à-dire le diamètre du faisceau qui arrive sur la peau.", desc_es: "El anillo dentado que ajusta el tamaño del spot, es decir, el diámetro del haz que llega a la piel.", desc_en: "The notched ring that sets the spot size, i.e. the diameter of the beam reaching the skin." },
         ],
       },
       {
-        title: "Pourquoi la distance gauge est essentielle",
+        title: "Pourquoi la distance gauge est essentielle", title_es: "Por qué la distance gauge es esencial", title_en: "Why the distance gauge is essential",
         text: "Elle ne sert pas juste à caler la main. Si le médecin la soulève ou survole la peau, la distance change et la fluence délivrée augmente fortement, sans que rien ne bouge sur l'écran. C'est un vrai point de sécurité : la bonne distance garantit que la peau reçoit exactement l'énergie prévue.",
+        text_es: "No sirve solo para apoyar la mano. Si el médico la levanta o sobrevuela la piel, la distancia cambia y la fluencia entregada aumenta mucho, sin que nada se mueva en la pantalla. Es un punto de seguridad real: la distancia correcta garantiza que la piel recibe exactamente la energía prevista.",
+        text_en: "It's not just to steady the hand. If the practitioner lifts it or hovers over the skin, the distance changes and the delivered fluence rises sharply, with nothing moving on the screen. It's a real safety point: the right distance ensures the skin gets exactly the intended energy.",
       },
       {
-        title: "Une pièce à main par longueur d'onde",
+        title: "Une pièce à main par longueur d'onde", title_es: "Una pieza de mano por longitud de onda", title_en: "One handpiece per wavelength",
         text: "Chaque longueur d'onde a sa propre pièce à main. Le médecin change de pièce selon les couleurs d'encre à traiter, parfois plusieurs fois dans une même séance sur un tatouage multicolore.",
+        text_es: "Cada longitud de onda tiene su propia pieza de mano. El médico cambia de pieza según los colores de tinta a tratar, a veces varias veces en una misma sesión en un tatuaje multicolor.",
+        text_en: "Each wavelength has its own handpiece. The practitioner switches pieces depending on the ink colours to treat, sometimes several times in one session on a multicolour tattoo.",
         wavelengths: [
-          { nm: "532", gradient: "linear-gradient(135deg, #DC2626 0%, #F97316 50%, #FACC15 100%)", inks: "Rouge, jaune, orange", phototypes: "I à III" },
-          { nm: "730", gradient: "linear-gradient(135deg, #2563EB 0%, #22C55E 100%)", inks: "Vert, bleu", phototypes: "II à IV" },
-          { nm: "1064", gradient: "linear-gradient(135deg, #1F2937 0%, #4B5563 100%)", inks: "Noir, marron, vert, bleu, violet", phototypes: "I à VI" },
+          { nm: "532", gradient: "linear-gradient(135deg, #DC2626 0%, #F97316 50%, #FACC15 100%)", inks: "Rouge, jaune, orange", inks_es: "Rojo, amarillo, naranja", inks_en: "Red, yellow, orange", phototypes: "I à III", phototypes_es: "I a III", phototypes_en: "I to III" },
+          { nm: "730", gradient: "linear-gradient(135deg, #2563EB 0%, #22C55E 100%)", inks: "Vert, bleu", inks_es: "Verde, azul", inks_en: "Green, blue", phototypes: "I à VI", phototypes_es: "I a VI", phototypes_en: "I to VI" },
+          { nm: "1064", gradient: "linear-gradient(135deg, #1F2937 0%, #4B5563 100%)", inks: "Noir, marron, vert, bleu, violet", inks_es: "Negro, marrón, verde, azul, violeta", inks_en: "Black, brown, green, blue, purple", phototypes: "I à VI", phototypes_es: "I a VI", phototypes_en: "I to VI" },
         ],
       },
       {
-        title: "L'appareil de cryothérapie",
-        image: {
-          src: IMG_CRYO,
-          alt: "Appareils de cryothérapie Mecotec et Zimmer",
+        title: "L'appareil de cryothérapie", title_es: "El aparato de crioterapia", title_en: "The cryotherapy device",
+        image: { src: IMG_CRYO, alt: "Appareils de cryothérapie Mecotec et Zimmer",
           caption: "Mecotec et Zimmer : deux marques d'appareils de cryothérapie, selon les centres.",
-        },
+          caption_es: "Mecotec y Zimmer: dos marcas de aparatos de crioterapia, según los centros.",
+          caption_en: "Mecotec and Zimmer: two brands of cryotherapy device, depending on the centre." },
       },
       {
-        title: "À quoi sert la cryothérapie",
+        title: "À quoi sert la cryothérapie", title_es: "Para qué sirve la crioterapia", title_en: "What cryotherapy is for",
         text: "L'appareil souffle de l'air très froid sur la zone, pendant et après le passage du laser. Il a deux effets : il anesthésie la peau, ce qui réduit nettement l'inconfort, et il protège l'épiderme de la chaleur. Attention toutefois : un refroidissement excessif peut favoriser une hypopigmentation. C'est le médecin qui dose.",
+        text_es: "El aparato sopla aire muy frío sobre la zona, durante y después del paso del láser. Tiene dos efectos: anestesia la piel, lo que reduce mucho las molestias, y protege la epidermis del calor. Ojo: un enfriamiento excesivo puede favorecer una hipopigmentación. Es el médico quien dosifica.",
+        text_en: "The device blows very cold air on the area, during and after the laser pass. It has two effects: it numbs the skin, greatly reducing discomfort, and it protects the epidermis from heat. Beware though: excessive cooling can promote hypopigmentation. The practitioner controls the dose.",
       },
       {
-        title: "Le reste du matériel",
+        title: "Le reste du matériel", title_es: "El resto del material", title_en: "The rest of the equipment",
         parts: [
-          { name: "Les lunettes de protection", desc: "Obligatoires pour le praticien et pour le patient, sans exception. Elles filtrent la longueur d'onde utilisée et protègent les yeux." },
-          { name: "Le dermatoscope", desc: "Une loupe éclairante servant à examiner la peau et à photographier le tatouage avant et après les séances." },
-          { name: "La balle anti-stress", desc: "Donnée au patient pour l'aider à gérer le stress et l'inconfort pendant la séance. Un détail qui compte beaucoup." },
+          { name: "Les lunettes de protection", name_es: "Las gafas de protección", name_en: "Protective goggles", desc: "Obligatoires pour le praticien et pour le patient, sans exception. Elles filtrent la longueur d'onde utilisée et protègent les yeux.", desc_es: "Obligatorias para el profesional y para el paciente, sin excepción. Filtran la longitud de onda utilizada y protegen los ojos.", desc_en: "Mandatory for the practitioner and the patient, without exception. They filter the wavelength used and protect the eyes." },
+          { name: "Le dermatoscope", name_es: "El dermatoscopio", name_en: "The dermatoscope", desc: "Une loupe éclairante servant à examiner la peau et à photographier le tatouage avant et après les séances.", desc_es: "Una lupa con luz que sirve para examinar la piel y fotografiar el tatuaje antes y después de las sesiones.", desc_en: "A lit magnifier used to examine the skin and photograph the tattoo before and after sessions." },
+          { name: "La balle anti-stress", name_es: "La pelota antiestrés", name_en: "The stress ball", desc: "Donnée au patient pour l'aider à gérer le stress et l'inconfort pendant la séance. Un détail qui compte beaucoup.", desc_es: "Se entrega al paciente para ayudarle a gestionar el estrés y las molestias durante la sesión. Un detalle que cuenta mucho.", desc_en: "Given to the patient to help manage stress and discomfort during the session. A detail that matters a lot." },
         ],
       },
     ],
   },
   {
     id: "phototypes",
-    title: "Les phototypes",
+    title: "Les phototypes", title_es: "Los fototipos", title_en: "Phototypes",
     intro: "Le phototype, c'est la classification de la peau selon sa réaction au soleil. Il y en a 6, du plus clair au plus foncé. Le médecin le détermine obligatoirement avant traitement. C'est lui qui dicte les réglages du laser.",
+    intro_es: "El fototipo es la clasificación de la piel según su reacción al sol. Hay 6, del más claro al más oscuro. El médico lo determina obligatoriamente antes del tratamiento. Es lo que dicta los ajustes del láser.",
+    intro_en: "The phototype is the classification of skin by its reaction to the sun. There are 6, from lightest to darkest. The practitioner must determine it before treatment. It dictates the laser settings.",
     sections: [
       {
-        title: "Les 6 phototypes (échelle de Fitzpatrick)",
+        title: "Les 6 phototypes (échelle de Fitzpatrick)", title_es: "Los 6 fototipos (escala de Fitzpatrick)", title_en: "The 6 phototypes (Fitzpatrick scale)",
         phototypes: [
-          { roman: "I",   color: "#F4D9C0", desc: "Très claire. Brûle toujours, ne bronze jamais. Souvent rousse ou blonde aux yeux clairs." },
-          { roman: "II",  color: "#E8C19F", desc: "Claire. Brûle souvent, bronze peu." },
-          { roman: "III", color: "#D2A37A", desc: "Intermédiaire. Brûle parfois, bronze progressivement." },
-          { roman: "IV",  color: "#A87752", desc: "Mate. Brûle rarement, bronze facilement." },
-          { roman: "V",   color: "#704A2D", desc: "Foncée. Brûle très rarement, bronze fortement." },
-          { roman: "VI",  color: "#3D2615", desc: "Très foncée à noire. Ne brûle pas." },
+          { roman: "I",   color: "#F4D9C0", desc: "Très claire. Brûle toujours, ne bronze jamais. Souvent rousse ou blonde aux yeux clairs.", desc_es: "Muy clara. Siempre se quema, nunca se broncea. A menudo pelirroja o rubia de ojos claros.", desc_en: "Very fair. Always burns, never tans. Often red or blond hair with light eyes." },
+          { roman: "II",  color: "#E8C19F", desc: "Claire. Brûle souvent, bronze peu.", desc_es: "Clara. Se quema a menudo, se broncea poco.", desc_en: "Fair. Often burns, tans little." },
+          { roman: "III", color: "#D2A37A", desc: "Intermédiaire. Brûle parfois, bronze progressivement.", desc_es: "Intermedia. A veces se quema, se broncea progresivamente.", desc_en: "Intermediate. Sometimes burns, tans gradually." },
+          { roman: "IV",  color: "#A87752", desc: "Mate. Brûle rarement, bronze facilement.", desc_es: "Mate. Rara vez se quema, se broncea con facilidad.", desc_en: "Olive. Rarely burns, tans easily." },
+          { roman: "V",   color: "#704A2D", desc: "Foncée. Brûle très rarement, bronze fortement.", desc_es: "Oscura. Muy rara vez se quema, se broncea intensamente.", desc_en: "Dark. Very rarely burns, tans strongly." },
+          { roman: "VI",  color: "#3D2615", desc: "Très foncée à noire. Ne brûle pas.", desc_es: "Muy oscura a negra. No se quema.", desc_en: "Very dark to black. Does not burn." },
         ],
       },
       {
-        title: "Pourquoi c'est crucial pour le laser",
+        title: "Pourquoi c'est crucial pour le laser", title_es: "Por qué es crucial para el láser", title_en: "Why it's crucial for the laser",
         text: "Plus la peau est foncée, plus elle contient de mélanine, un pigment naturel. Or la mélanine absorbe aussi la lumière du laser. Sans précaution, le laser ciblerait la peau au lieu de l'encre.",
+        text_es: "Cuanto más oscura es la piel, más melanina contiene, un pigmento natural. Y la melanina también absorbe la luz del láser. Sin precaución, el láser apuntaría a la piel en vez de a la tinta.",
+        text_en: "The darker the skin, the more melanin it contains, a natural pigment. But melanin also absorbs the laser light. Without care, the laser would target the skin instead of the ink.",
         risks: [
           "Hypopigmentation : la peau devient plus claire que le reste",
           "Hyperpigmentation : la peau devient plus foncée",
           "Risque accru de cicatrices",
         ],
+        risks_es: [
+          "Hipopigmentación: la piel queda más clara que el resto",
+          "Hiperpigmentación: la piel queda más oscura",
+          "Mayor riesgo de cicatrices",
+        ],
+        risks_en: [
+          "Hypopigmentation: the skin becomes lighter than the rest",
+          "Hyperpigmentation: the skin becomes darker",
+          "Increased risk of scarring",
+        ],
       },
       {
-        title: "Adaptation aux phototypes foncés",
+        title: "Adaptation aux phototypes foncés", title_es: "Adaptación a los fototipos oscuros", title_en: "Adapting to dark phototypes",
         text: "Sur les phototypes IV à VI, le médecin baisse la fluence (l'intensité du laser) et privilégie le 1064 nm, qui traverse mieux la peau sans accrocher la mélanine épidermique. Il commence toujours par un test, observe la réaction, puis ajuste séance après séance.",
+        text_es: "En los fototipos IV a VI, el médico baja la fluencia (la intensidad del láser) y prioriza el 1064 nm, que atraviesa mejor la piel sin engancharse a la melanina epidérmica. Siempre empieza con una prueba, observa la reacción y ajusta sesión tras sesión.",
+        text_en: "On phototypes IV to VI, the practitioner lowers the fluence (the laser's intensity) and favours 1064 nm, which passes through the skin better without catching the epidermal melanin. They always start with a test, watch the reaction, then adjust session after session.",
       },
     ],
   },
   {
     id: "picoseconde",
-    title: "La techno picoseconde",
+    title: "La techno picoseconde", title_es: "La tecnología picosegundo", title_en: "Picosecond technology",
     intro: "Une picoseconde, c'est un milliardième de seconde (10⁻¹² s). Le PicoWay envoie des impulsions extrêmement courtes, entre 250 et 450 picosecondes. Cette ultra-rapidité change tout par rapport aux anciens lasers.",
+    intro_es: "Un picosegundo es una billonésima de segundo (10⁻¹² s). El PicoWay emite impulsos extremadamente cortos, entre 250 y 450 picosegundos. Esa ultrarrapidez lo cambia todo frente a los láseres antiguos.",
+    intro_en: "A picosecond is a trillionth of a second (10⁻¹² s). The PicoWay sends extremely short pulses, between 250 and 450 picoseconds. This ultra-speed changes everything compared to older lasers.",
     sections: [
       {
-        title: "Photothermique vs photoacoustique : la grande différence",
-        comparison: [
-          {
-            label: "Anciens lasers (nanoseconde)",
-            type: "Effet photothermique",
-            analogy: "Comme verser de l'eau chaude sur de la glace : ça finit par fondre, mais ça chauffe aussi tout autour.",
-            points: ["Beaucoup de chaleur résiduelle", "Plus de risque de cicatrices", "Inconfort plus marqué", "Fragmentation moins fine"],
-            isOld: true,
-          },
-          {
-            label: "PicoWay (picoseconde)",
-            type: "Effet photoacoustique",
-            analogy: "Comme un marteau qui brise du verre en mille morceaux : c'est mécanique, instantané, et la chaleur n'a pas le temps de se diffuser.",
-            points: ["Beaucoup moins de chaleur", "Moins de risque de cicatrices", "Mieux toléré", "Fragmentation plus fine de l'encre"],
-            isOld: false,
-          },
-        ],
-      },
-      {
-        title: "Concrètement, qu'est-ce que ça change ?",
+        title: "Concrètement, qu'est-ce que ça change ?", title_es: "En concreto, ¿qué cambia?", title_en: "In practice, what does it change?",
         bullets: [
           "Les pigments sont fragmentés en particules plus petites, donc plus faciles à évacuer pour le corps.",
           "Moins de chaleur résiduelle dans la peau = moins de douleur pendant la séance.",
           "Moins de risque d'hypopigmentation ou d'hyperpigmentation, surtout sur peaux mates et foncées.",
           "Le PicoWay produit 4,5× plus d'effet photoacoustique que d'autres lasers picosecondes. C'est ce qui fait sa précision.",
         ],
+        bullets_es: [
+          "Los pigmentos se fragmentan en partículas más pequeñas, más fáciles de evacuar para el cuerpo.",
+          "Menos calor residual en la piel = menos dolor durante la sesión.",
+          "Menor riesgo de hipopigmentación o hiperpigmentación, sobre todo en pieles mates y oscuras.",
+          "El PicoWay produce 4,5× más efecto fotoacústico que otros láseres de picosegundo. Eso es lo que le da precisión.",
+        ],
+        bullets_en: [
+          "Pigments are broken into smaller particles, so they're easier for the body to clear.",
+          "Less residual heat in the skin = less pain during the session.",
+          "Lower risk of hypopigmentation or hyperpigmentation, especially on olive and dark skin.",
+          "The PicoWay produces 4.5× more photoacoustic effect than other picosecond lasers. That's what makes it precise.",
+        ],
       },
       {
-        title: "Le mot juste pour le patient",
+        title: "Le mot juste pour le patient", title_es: "La palabra justa para el paciente", title_en: "The right words for the patient",
         text: "Inutile de parler de « photoacoustique » à un patient. Une formule comme : « notre laser pulvérise l'encre par onde de choc plutôt que par chaleur, c'est plus précis et mieux toléré » suffit largement.",
+        text_es: "No hace falta hablar de «fotoacústico» a un paciente. Una frase como: «nuestro láser pulveriza la tinta por onda de choque en vez de por calor, es más preciso y mejor tolerado» es más que suficiente.",
+        text_en: "No need to say 'photoacoustic' to a patient. A phrase like: 'our laser shatters the ink by a shock wave rather than heat, it's more precise and better tolerated' is plenty.",
       },
     ],
   },
   {
     id: "ink-journey",
-    title: "Le parcours de l'encre",
+    title: "Le parcours de l'encre", title_es: "El recorrido de la tinta", title_en: "The ink's journey",
     intro: "Une question revient souvent : « où va l'encre une fois qu'elle est cassée ? » Comprendre ce trajet aide à expliquer pourquoi le détatouage prend du temps et pourquoi le mode de vie du patient compte.",
+    intro_es: "Una pregunta se repite a menudo: «¿adónde va la tinta una vez rota?». Entender ese recorrido ayuda a explicar por qué la eliminación lleva tiempo y por qué el estilo de vida del paciente cuenta.",
+    intro_en: "One question comes up a lot: 'where does the ink go once it's broken up?' Understanding that journey helps explain why removal takes time and why the patient's lifestyle matters.",
     sections: [
       {
-        title: "Avant le laser",
+        title: "Avant le laser", title_es: "Antes del láser", title_en: "Before the laser",
         text: "Quand on se fait tatouer, l'aiguille dépose l'encre dans le derme, la couche profonde de la peau. Le corps reconnaît ces pigments comme des corps étrangers et envoie des macrophages pour les « manger ». Mais les particules d'encre sont trop grosses pour être évacuées : les macrophages restent coincés avec, et c'est ce qui rend le tatouage permanent et stable dans le temps.",
+        text_es: "Al tatuarse, la aguja deposita la tinta en la dermis, la capa profunda de la piel. El cuerpo reconoce esos pigmentos como cuerpos extraños y envía macrófagos para «comérselos». Pero las partículas de tinta son demasiado grandes para evacuarse: los macrófagos quedan atrapados con ellas, y eso hace que el tatuaje sea permanente y estable en el tiempo.",
+        text_en: "When you get tattooed, the needle deposits ink in the dermis, the deep layer of skin. The body sees these pigments as foreign bodies and sends macrophages to 'eat' them. But the ink particles are too big to be cleared: the macrophages stay stuck with them, and that's what makes the tattoo permanent and stable over time.",
       },
       {
-        title: "Ce que change le laser",
+        title: "Ce que change le laser", title_es: "Lo que cambia el láser", title_en: "What the laser changes",
         items: [
-          { label: "1.", strong: "Fragmentation.", text: "Le laser brise les grosses particules d'encre en fragments minuscules, assez petits pour être transportés." },
-          { label: "2.", strong: "Capture.", text: "De nouveaux macrophages viennent engloutir ces petits fragments." },
-          { label: "3.", strong: "Évacuation.", text: "Ils rejoignent le système lymphatique, qui draine les déchets vers les ganglions, puis le corps les élimine progressivement." },
+          { label: "1.", strong: "Fragmentation.", strong_es: "Fragmentación.", strong_en: "Fragmentation.", text: "Le laser brise les grosses particules d'encre en fragments minuscules, assez petits pour être transportés.", text_es: "El láser rompe las grandes partículas de tinta en fragmentos diminutos, lo bastante pequeños para ser transportados.", text_en: "The laser breaks the large ink particles into tiny fragments, small enough to be transported." },
+          { label: "2.", strong: "Capture.", strong_es: "Captura.", strong_en: "Capture.", text: "De nouveaux macrophages viennent engloutir ces petits fragments.", text_es: "Nuevos macrófagos acuden a engullir esos pequeños fragmentos.", text_en: "New macrophages come to engulf these small fragments." },
+          { label: "3.", strong: "Évacuation.", strong_es: "Evacuación.", strong_en: "Clearance.", text: "Ils rejoignent le système lymphatique, qui draine les déchets vers les ganglions, puis le corps les élimine progressivement.", text_es: "Se dirigen al sistema linfático, que drena los residuos hacia los ganglios, y luego el cuerpo los elimina progresivamente.", text_en: "They reach the lymphatic system, which drains the waste to the lymph nodes, then the body eliminates them gradually." },
         ],
       },
       {
-        title: "Pourquoi le mode de vie compte",
+        title: "Pourquoi le mode de vie compte", title_es: "Por qué cuenta el estilo de vida", title_en: "Why lifestyle matters",
         text: "Comme l'évacuation passe par le système lymphatique et la circulation, tout ce qui soutient une bonne circulation aide : hydratation, activité physique régulière (en dehors des 48h post-séance), éviter le tabac qui ralentit la microcirculation. Ce n'est pas magique, mais ça participe au résultat global.",
+        text_es: "Como la evacuación pasa por el sistema linfático y la circulación, todo lo que favorece una buena circulación ayuda: hidratación, actividad física regular (fuera de las 48h posteriores a la sesión), evitar el tabaco que ralentiza la microcirculación. No es mágico, pero contribuye al resultado global.",
+        text_en: "Since clearance goes through the lymphatic system and circulation, anything that supports good circulation helps: hydration, regular physical activity (outside the 48h after a session), avoiding tobacco which slows microcirculation. It's not magic, but it contributes to the overall result.",
       },
       {
-        title: "La bonne image pour le patient",
+        title: "La bonne image pour le patient", title_es: "La buena imagen para el paciente", title_en: "A good image for the patient",
         text: "Une métaphore simple : « le laser casse l'encre en miettes assez petites pour que votre corps puisse les jeter à la poubelle tout seul. Et ça, ça prend plusieurs semaines après chaque séance. » C'est imagé, juste, et ça fait comprendre le délai.",
+        text_es: "Una metáfora simple: «el láser rompe la tinta en migas lo bastante pequeñas para que tu cuerpo pueda tirarlas a la basura solo. Y eso lleva varias semanas después de cada sesión.» Es gráfico, correcto y hace entender el plazo.",
+        text_en: "A simple metaphor: 'the laser breaks the ink into crumbs small enough for your body to throw in the bin by itself. And that takes several weeks after each session.' It's vivid, accurate, and makes the timeframe clear.",
       },
     ],
   },
   {
     id: "myths",
-    title: "Les idées reçues",
+    title: "Les idées reçues", title_es: "Las ideas equivocadas", title_en: "Common misconceptions",
     intro: "Les patients arrivent souvent avec des croyances fausses sur le détatouage. Savoir les démonter calmement, avec les bons mots, rassure et installe la confiance. Voici les plus fréquentes.",
+    intro_es: "Los pacientes llegan a menudo con creencias falsas sobre la eliminación. Saber desmontarlas con calma y las palabras adecuadas tranquiliza y genera confianza. Aquí van las más frecuentes.",
+    intro_en: "Patients often arrive with false beliefs about removal. Being able to calmly debunk them, with the right words, reassures and builds trust. Here are the most common ones.",
     sections: [
       {
-        title: "Ce qu'on entend, et ce qui est vrai",
+        title: "Ce qu'on entend, et ce qui est vrai", title_es: "Lo que se oye, y lo que es cierto", title_en: "What people say, and what's true",
         myths: [
-          {
-            myth: "« Le laser, ça donne le cancer. »",
-            truth: "Faux. Le laser de détatouage n'émet pas de rayonnement ionisant (comme les rayons X). Il fragmente l'encre par la lumière et n'altère pas l'ADN des cellules.",
-          },
-          {
-            myth: "« L'encre dissoute part dans le sang et c'est toxique. »",
-            truth: "À nuancer. L'encre n'est pas 'dissoute' : elle est fragmentée puis évacuée par le système lymphatique, comme le corps gère d'autres déchets. C'est un processus naturel.",
-          },
-          {
-            myth: "« On peut tout enlever en une ou deux séances. »",
-            truth: "Faux. Il faut presque toujours plusieurs séances espacées de 6 à 8 semaines. Le corps a besoin de ce temps pour évacuer les pigments entre deux passages.",
-          },
-          {
-            myth: "« Si ça fait très mal, c'est que c'est plus efficace. »",
-            truth: "Faux. La douleur n'est pas un indicateur d'efficacité. Le bon repère clinique, c'est la réaction de la peau, que seul le médecin évalue.",
-          },
-          {
-            myth: "« Les crèmes de détatouage vendues en ligne marchent aussi bien. »",
-            truth: "Faux et risqué. Ces crèmes n'atteignent pas l'encre dans le derme et peuvent abîmer la peau (brûlures chimiques, cicatrices). Seul le laser agit en profondeur.",
-          },
-          {
-            myth: "« Une fois détatoué, je pourrai me faire retatouer au même endroit. »",
-            truth: "Souvent oui, mais c'est au médecin et au futur tatoueur d'évaluer l'état de la peau une fois la cicatrisation complète et le résultat stabilisé.",
-          },
+          { myth: "« Le laser, ça donne le cancer. »", myth_es: "« El láser da cáncer. »", myth_en: "“Lasers cause cancer.”",
+            truth: "Faux. Le laser de détatouage n'émet pas de rayonnement ionisant (comme les rayons X). Il fragmente l'encre par la lumière et n'altère pas l'ADN des cellules.", truth_es: "Falso. El láser de eliminación no emite radiación ionizante (como los rayos X). Fragmenta la tinta con luz y no altera el ADN de las células.", truth_en: "False. The removal laser doesn't emit ionising radiation (like X-rays). It fragments the ink with light and doesn't alter the cells' DNA." },
+          { myth: "« L'encre dissoute part dans le sang et c'est toxique. »", myth_es: "« La tinta disuelta pasa a la sangre y es tóxica. »", myth_en: "“The dissolved ink goes into the blood and is toxic.”",
+            truth: "À nuancer. L'encre n'est pas 'dissoute' : elle est fragmentée puis évacuée par le système lymphatique, comme le corps gère d'autres déchets. C'est un processus naturel.", truth_es: "Con matices. La tinta no se 'disuelve': se fragmenta y se evacúa por el sistema linfático, como el cuerpo gestiona otros residuos. Es un proceso natural.", truth_en: "To be nuanced. The ink isn't 'dissolved': it's fragmented then cleared by the lymphatic system, like the body handles other waste. It's a natural process." },
+          { myth: "« On peut tout enlever en une ou deux séances. »", myth_es: "« Se puede quitar todo en una o dos sesiones. »", myth_en: "“You can remove it all in one or two sessions.”",
+            truth: "Faux. Il faut presque toujours plusieurs séances espacées de 6 à 8 semaines. Le corps a besoin de ce temps pour évacuer les pigments entre deux passages.", truth_es: "Falso. Casi siempre hacen falta varias sesiones separadas 6 a 8 semanas. El cuerpo necesita ese tiempo para evacuar los pigmentos entre pasadas.", truth_en: "False. It almost always takes several sessions spaced 6 to 8 weeks apart. The body needs that time to clear the pigments between passes." },
+          { myth: "« Si ça fait très mal, c'est que c'est plus efficace. »", myth_es: "« Si duele mucho, es que es más eficaz. »", myth_en: "“If it hurts a lot, it's more effective.”",
+            truth: "Faux. La douleur n'est pas un indicateur d'efficacité. Le bon repère clinique, c'est la réaction de la peau, que seul le médecin évalue.", truth_es: "Falso. El dolor no es un indicador de eficacia. La buena referencia clínica es la reacción de la piel, que solo el médico evalúa.", truth_en: "False. Pain isn't a measure of effectiveness. The right clinical marker is the skin's reaction, which only the practitioner assesses." },
+          { myth: "« Les crèmes de détatouage vendues en ligne marchent aussi bien. »", myth_es: "« Las cremas de eliminación que se venden por internet funcionan igual de bien. »", myth_en: "“Removal creams sold online work just as well.”",
+            truth: "Faux et risqué. Ces crèmes n'atteignent pas l'encre dans le derme et peuvent abîmer la peau (brûlures chimiques, cicatrices). Seul le laser agit en profondeur.", truth_es: "Falso y arriesgado. Esas cremas no alcanzan la tinta en la dermis y pueden dañar la piel (quemaduras químicas, cicatrices). Solo el láser actúa en profundidad.", truth_en: "False and risky. These creams don't reach the ink in the dermis and can damage the skin (chemical burns, scars). Only the laser works deep down." },
+          { myth: "« Une fois détatoué, je pourrai me faire retatouer au même endroit. »", myth_es: "« Una vez eliminado, podré volver a tatuarme en el mismo sitio. »", myth_en: "“Once removed, I'll be able to get tattooed again in the same spot.”",
+            truth: "Souvent oui, mais c'est au médecin et au futur tatoueur d'évaluer l'état de la peau une fois la cicatrisation complète et le résultat stabilisé.", truth_es: "A menudo sí, pero corresponde al médico y al futuro tatuador evaluar el estado de la piel una vez completada la cicatrización y estabilizado el resultado.", truth_en: "Often yes, but it's for the practitioner and the future tattoo artist to assess the skin once healing is complete and the result has stabilised." },
         ],
       },
       {
-        title: "La bonne attitude face à une croyance fausse",
+        title: "La bonne attitude face à une croyance fausse", title_es: "La actitud correcta ante una creencia falsa", title_en: "The right attitude to a false belief",
         text: "Ne jamais moquer ni balayer la croyance d'un patient. On reconnaît la question, on corrige avec une info simple et juste, et on renvoie au médecin pour tout ce qui touche à sa situation personnelle. Un patient qui se sent écouté accepte beaucoup mieux d'être détrompé.",
+        text_es: "Nunca te burles ni descartes la creencia de un paciente. Se reconoce la pregunta, se corrige con una información simple y correcta, y se remite al médico para todo lo relativo a su situación personal. Un paciente que se siente escuchado acepta mucho mejor que le corrijan.",
+        text_en: "Never mock or brush off a patient's belief. Acknowledge the question, correct it with simple, accurate information, and refer to the practitioner for anything about their personal situation. A patient who feels heard is far more willing to be corrected.",
       },
     ],
   },
   {
     id: "pillars",
-    title: "Les 4 paramètres",
+    title: "Les 4 paramètres", title_es: "Los 4 parámetros", title_en: "The 4 parameters",
     intro: "Pour chaque séance, le médecin règle 4 paramètres qui définissent l'effet du laser sur la peau et le tatouage. Ces réglages sont ajustés à chaque patient : votre phototype, votre tatouage, votre tolérance.",
+    intro_es: "En cada sesión, el médico ajusta 4 parámetros que definen el efecto del láser sobre la piel y el tatuaje. Estos ajustes se adaptan a cada paciente: tu fototipo, tu tatuaje, tu tolerancia.",
+    intro_en: "For each session, the practitioner sets 4 parameters that define the laser's effect on the skin and tattoo. These settings are tailored to each patient: your phototype, your tattoo, your tolerance.",
     sections: [
       {
-        title: "Les 4 réglages du laser",
+        title: "Les 4 réglages du laser", title_es: "Los 4 ajustes del láser", title_en: "The laser's 4 settings",
         pillars: [
           {
-            name: "Fluence",
+            name: "Fluence", name_es: "Fluencia", name_en: "Fluence",
             unit: "J/cm²",
-            what: "L'intensité du laser sur la peau",
-            explain: "C'est la dose délivrée par unité de surface. Plus elle est élevée, plus l'impact sur l'encre est fort, mais plus le risque pour la peau augmente. Le médecin l'ajuste au phototype et au type de tatouage.",
+            what: "L'intensité du laser sur la peau", what_es: "La intensidad del láser sobre la piel", what_en: "The laser's intensity on the skin",
+            explain: "C'est la dose délivrée par unité de surface. Plus elle est élevée, plus l'impact sur l'encre est fort, mais plus le risque pour la peau augmente. Le médecin l'ajuste au phototype et au type de tatouage.", explain_es: "Es la dosis entregada por unidad de superficie. Cuanto más alta, más fuerte es el impacto sobre la tinta, pero más aumenta el riesgo para la piel. El médico la ajusta al fototipo y al tipo de tatuaje.", explain_en: "It's the dose delivered per unit area. The higher it is, the stronger the impact on the ink, but the greater the risk to the skin. The practitioner adjusts it to the phototype and tattoo type.",
           },
           {
-            name: "Taille du spot",
+            name: "Taille du spot", name_es: "Tamaño del spot", name_en: "Spot size",
             unit: "mm",
-            what: "Le diamètre du faisceau",
-            explain: "Un grand spot pénètre plus profondément et reste mieux concentré. Un petit spot est plus diffus et plus superficiel. Le choix dépend surtout de la profondeur à laquelle l'encre a été déposée.",
+            what: "Le diamètre du faisceau", what_es: "El diámetro del haz", what_en: "The diameter of the beam",
+            explain: "Un grand spot pénètre plus profondément et reste mieux concentré. Un petit spot est plus diffus et plus superficiel. Le choix dépend surtout de la profondeur à laquelle l'encre a été déposée.", explain_es: "Un spot grande penetra más profundo y se mantiene mejor concentrado. Un spot pequeño es más difuso y superficial. La elección depende sobre todo de la profundidad a la que se depositó la tinta.", explain_en: "A large spot penetrates deeper and stays better focused. A small spot is more diffuse and superficial. The choice depends mainly on how deep the ink was deposited.",
           },
           {
-            name: "Énergie",
+            name: "Énergie", name_es: "Energía", name_en: "Energy",
             unit: "mJ",
-            what: "L'énergie de chaque impulsion",
-            explain: "C'est ce que délivre chaque tir laser. Combinée à la taille du spot, elle détermine la fluence. C'est la valeur qui s'affiche directement sur l'écran de la machine.",
+            what: "L'énergie de chaque impulsion", what_es: "La energía de cada impulso", what_en: "The energy of each pulse",
+            explain: "C'est ce que délivre chaque tir laser. Combinée à la taille du spot, elle détermine la fluence. C'est la valeur qui s'affiche directement sur l'écran de la machine.", explain_es: "Es lo que entrega cada disparo láser. Combinada con el tamaño del spot, determina la fluencia. Es el valor que se muestra directamente en la pantalla de la máquina.", explain_en: "It's what each laser shot delivers. Combined with the spot size, it determines the fluence. It's the value shown directly on the machine's screen.",
           },
           {
-            name: "Fréquence",
+            name: "Fréquence", name_es: "Frecuencia", name_en: "Frequency",
             unit: "Hz",
-            what: "Le nombre d'impulsions par seconde",
-            explain: "Combien de fois par seconde le laser tire. Une fréquence élevée accélère le traitement mais peut augmenter l'inconfort. Le médecin l'ajuste selon la zone, la taille du tatouage et la tolérance du patient.",
+            what: "Le nombre d'impulsions par seconde", what_es: "El número de impulsos por segundo", what_en: "The number of pulses per second",
+            explain: "Combien de fois par seconde le laser tire. Une fréquence élevée accélère le traitement mais peut augmenter l'inconfort. Le médecin l'ajuste selon la zone, la taille du tatouage et la tolérance du patient.", explain_es: "Cuántas veces por segundo dispara el láser. Una frecuencia alta acelera el tratamiento pero puede aumentar las molestias. El médico la ajusta según la zona, el tamaño del tatuaje y la tolerancia del paciente.", explain_en: "How many times per second the laser fires. A high frequency speeds up treatment but can increase discomfort. The practitioner adjusts it to the area, tattoo size and the patient's tolerance.",
           },
         ],
       },
       {
-        title: "Comment tout ça s'articule",
+        title: "Comment tout ça s'articule", title_es: "Cómo se articula todo", title_en: "How it all fits together",
         text: "Ces 4 paramètres ne se règlent pas isolément. Augmenter la fluence ou réduire la taille du spot rend chaque tir plus intense. La longueur d'onde choisie (532, 730 ou 1064 nm selon la couleur d'encre) vient encore moduler tout ça. C'est cette combinaison fine qui rend chaque séance personnalisée.",
+        text_es: "Estos 4 parámetros no se ajustan por separado. Subir la fluencia o reducir el tamaño del spot hace que cada disparo sea más intenso. La longitud de onda elegida (532, 730 o 1064 nm según el color de la tinta) modula además todo esto. Es esa combinación fina la que hace que cada sesión sea personalizada.",
+        text_en: "These 4 parameters aren't set in isolation. Raising the fluence or reducing the spot size makes each shot more intense. The chosen wavelength (532, 730 or 1064 nm depending on the ink colour) further modulates all of this. It's this fine combination that makes each session personalised.",
       },
     ],
   },
@@ -1399,6 +2716,11 @@ const SPECIAL_CASES = [
     question: "Sourcils complets",
     short: "Tarif forfaitaire 159 € par séance. Protocole spécifique : Cicaplast SPF 50 dès le début, pas de pansement.",
     detail: "Les pigments cosmétiques (souvent dioxyde de titane) demandent une attention particulière. Le médecin évalue le risque de virage de couleur en consultation initiale.",
+    question_es: "Cejas completas", question_en: "Full eyebrows",
+    short_es: "Tarifa fija 159 € por sesión. Protocolo específico: Cicaplast SPF 50 desde el principio, sin apósito.",
+    short_en: "Flat rate €159 per session. Specific protocol: Cicaplast SPF 50 from the start, no dressing.",
+    detail_es: "Los pigmentos cosméticos (a menudo dióxido de titanio) requieren atención especial. El médico evalúa el riesgo de viraje de color en la consulta inicial.",
+    detail_en: "Cosmetic pigments (often titanium dioxide) need special attention. The practitioner assesses the risk of colour shift at the initial consultation.",
     keywords: ["sourcils", "cosmétique", "maquillage"],
   },
   {
@@ -1406,6 +2728,11 @@ const SPECIAL_CASES = [
     question: "Taches de rousseur",
     short: "Tarif forfaitaire 159 € par séance. Consultation initiale obligatoire pour évaluer le phototype.",
     detail: "Le médecin évaluera la pertinence du traitement selon votre type de peau.",
+    question_es: "Pecas", question_en: "Freckles",
+    short_es: "Tarifa fija 159 € por sesión. Consulta inicial obligatoria para evaluar el fototipo.",
+    short_en: "Flat rate €159 per session. Initial consultation required to assess the phototype.",
+    detail_es: "El médico evaluará la conveniencia del tratamiento según tu tipo de piel.",
+    detail_en: "The practitioner will assess whether treatment is suitable for your skin type.",
     keywords: ["taches", "rousseur", "visage"],
   },
   {
@@ -1413,6 +2740,11 @@ const SPECIAL_CASES = [
     question: "Pointe des sourcils (retouche)",
     short: "Tarif spécifique 99 €. La consultation initiale reste obligatoire.",
     detail: "Pour les petites zones de retouche uniquement.",
+    question_es: "Punta de las cejas (retoque)", question_en: "Eyebrow tips (touch-up)",
+    short_es: "Tarifa específica 99 €. La consulta inicial sigue siendo obligatoria.",
+    short_en: "Specific rate €99. The initial consultation is still required.",
+    detail_es: "Solo para pequeñas zonas de retoque.",
+    detail_en: "For small touch-up areas only.",
     keywords: ["pointe", "sourcils", "retouche"],
   },
   {
@@ -1420,6 +2752,11 @@ const SPECIAL_CASES = [
     question: "Paupières (maquillage permanent)",
     short: "Non, nous ne le proposons pas. Nécessite des coques intra-oculaires que nous n'avons pas, et risque élevé de virage de couleur.",
     detail: "Position Ray studios : abstention thérapeutique sur les paupières. À expliquer clairement au patient sans le rediriger ailleurs (on ne peut pas garantir la qualité d'autres centres).",
+    question_es: "Párpados (maquillaje permanente)", question_en: "Eyelids (permanent makeup)",
+    short_es: "No, no lo ofrecemos. Requiere protectores oculares intraoculares que no tenemos, y hay alto riesgo de viraje de color.",
+    short_en: "No, we don't offer it. It needs intraocular eye shields we don't have, and there's a high risk of colour shift.",
+    detail_es: "Postura Ray studios: abstención terapéutica en los párpados. Explicarlo con claridad al paciente sin derivarlo a otro sitio (no podemos garantizar la calidad de otros centros).",
+    detail_en: "Ray studios stance: therapeutic abstention on eyelids. Explain it clearly to the patient without redirecting them elsewhere (we can't guarantee other centres' quality).",
     keywords: ["paupières", "yeux", "maquillage"],
     forbidden: true,
   },
@@ -1428,6 +2765,11 @@ const SPECIAL_CASES = [
     question: "Lèvres (maquillage permanent)",
     short: "Non. Risque de virage de couleur définitif (pigments clairs qui virent au noir ou gris).",
     detail: "Les pigments à base d'oxyde de fer réagissent mal au laser. Le changement de couleur est irréversible. Abstention thérapeutique.",
+    question_es: "Labios (maquillaje permanente)", question_en: "Lips (permanent makeup)",
+    short_es: "No. Riesgo de viraje de color definitivo (pigmentos claros que viran a negro o gris).",
+    short_en: "No. Risk of permanent colour shift (light pigments turning black or grey).",
+    detail_es: "Los pigmentos a base de óxido de hierro reaccionan mal al láser. El cambio de color es irreversible. Abstención terapéutica.",
+    detail_en: "Iron-oxide-based pigments react badly to the laser. The colour change is irreversible. Therapeutic abstention.",
     keywords: ["lèvres", "bouche", "maquillage permanent"],
     forbidden: true,
   },
@@ -1436,6 +2778,11 @@ const SPECIAL_CASES = [
     question: "Gencives",
     short: "Non. Risques de brûlures gingivales, nécroses, récession gingivale, mauvaise cicatrisation.",
     detail: "Pas de détatouage des gencives chez Ray studios.",
+    question_es: "Encías", question_en: "Gums",
+    short_es: "No. Riesgos de quemaduras gingivales, necrosis, recesión gingival, mala cicatrización.",
+    short_en: "No. Risks of gum burns, necrosis, gum recession, poor healing.",
+    detail_es: "No hacemos eliminación de tatuajes en las encías en Ray studios.",
+    detail_en: "We don't do gum tattoo removal at Ray studios.",
     keywords: ["gencives", "bouche", "dents"],
     forbidden: true,
   },
@@ -1444,6 +2791,11 @@ const SPECIAL_CASES = [
     question: "Verge, testicules, anus",
     short: "Non. Zones très sensibles, risques de lésions nerveuses, cicatrices, troubles fonctionnels. Données scientifiques insuffisantes.",
     detail: "Position de prudence Ray studios. Ces zones ne sont jamais traitées, quelle que soit l'insistance du patient.",
+    question_es: "Pene, testículos, ano", question_en: "Penis, testicles, anus",
+    short_es: "No. Zonas muy sensibles, riesgos de lesiones nerviosas, cicatrices, trastornos funcionales. Datos científicos insuficientes.",
+    short_en: "No. Very sensitive areas, risks of nerve damage, scarring, functional problems. Insufficient scientific data.",
+    detail_es: "Postura de prudencia de Ray studios. Estas zonas nunca se tratan, por mucho que insista el paciente.",
+    detail_en: "Ray studios' cautious stance. These areas are never treated, however much the patient insists.",
     keywords: ["verge", "testicules", "anus", "génitales", "intimes"],
     forbidden: true,
   },
@@ -1452,6 +2804,11 @@ const SPECIAL_CASES = [
     question: "Sourcils déjà traités ailleurs (résidu vert)",
     short: "À transmettre au médecin. Si la couleur résiduelle est verte, il est généralement préférable de ne pas traiter (dioxyde de titane qui peut virer).",
     detail: "Le médecin évaluera au cas par cas selon l'historique du patient.",
+    question_es: "Cejas ya tratadas en otro sitio (residuo verde)", question_en: "Eyebrows already treated elsewhere (green residue)",
+    short_es: "Trasladar al médico. Si el color residual es verde, suele ser preferible no tratar (dióxido de titanio que puede virar).",
+    short_en: "Pass to the practitioner. If the residual colour is green, it's usually better not to treat (titanium dioxide that may shift).",
+    detail_es: "El médico evaluará caso por caso según el historial del paciente.",
+    detail_en: "The practitioner will assess case by case based on the patient's history.",
     keywords: ["sourcils", "vert", "résidu", "ailleurs"],
     needsDoctor: true,
   },
@@ -1460,6 +2817,11 @@ const SPECIAL_CASES = [
     question: "Tatouage par poudre d'arme à feu",
     short: "Contre-indication formelle. Risque de micro-explosions et cicatrices.",
     detail: "À transmettre au médecin si la question se pose. Ce type de tatouage accidentel ne se traite pas au laser.",
+    question_es: "Tatuaje por pólvora de arma de fuego", question_en: "Firearm gunpowder tattoo",
+    short_es: "Contraindicación formal. Riesgo de microexplosiones y cicatrices.",
+    short_en: "Formal contraindication. Risk of micro-explosions and scarring.",
+    detail_es: "Trasladar al médico si surge la cuestión. Este tipo de tatuaje accidental no se trata con láser.",
+    detail_en: "Pass to the practitioner if it comes up. This type of accidental tattoo isn't treated with laser.",
     keywords: ["poudre", "arme", "feu", "accidentel"],
     needsDoctor: true,
     forbidden: true,
@@ -1469,6 +2831,11 @@ const SPECIAL_CASES = [
     question: "Taches pigmentaires (mélasma, lentigines)",
     short: "Non. Ray studios se consacre exclusivement au détatouage, pas aux taches pigmentaires.",
     detail: "Choix de spécialisation pour garantir la qualité des soins. À rediriger vers un dermatologue ou un centre dédié.",
+    question_es: "Manchas pigmentarias (melasma, lentigos)", question_en: "Pigment spots (melasma, lentigines)",
+    short_es: "No. Ray studios se dedica exclusivamente a la eliminación de tatuajes, no a las manchas pigmentarias.",
+    short_en: "No. Ray studios focuses only on tattoo removal, not pigment spots.",
+    detail_es: "Elección de especialización para garantizar la calidad de los cuidados. Derivar a un dermatólogo o centro dedicado.",
+    detail_en: "A specialisation choice to guarantee quality of care. Redirect to a dermatologist or dedicated centre.",
     keywords: ["mélasma", "lentigines", "taches", "pigmentaires"],
     forbidden: true,
   },
@@ -1524,47 +2891,52 @@ function FadeDots({ className = "" }) {
 }
 
 function ThemeBadge({ themeId }) {
+  const lang = useLang();
   const theme = THEMES.find((t) => t.id === themeId);
   if (!theme) return null;
   return (
     <span className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-medium text-stone-500">
       <span className="w-1 h-1 rounded-full" style={{ backgroundColor: RAY_ORANGE }} />
-      {theme.label}
+      {L(theme, "label", lang)}
     </span>
   );
 }
 
 function DoctorBadge() {
+  const t = UI[useLang()];
   return (
     <span
       className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-medium px-2 py-1 rounded-md"
       style={{ backgroundColor: RAY_ORANGE_SOFT, color: "#8B4513" }}
     >
       <Stethoscope className="w-3 h-3" />
-      Pour le médecin
+      {t.badge_doctor}
     </span>
   );
 }
 
 function UrgentBadge() {
+  const t = UI[useLang()];
   return (
     <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-medium px-2 py-1 rounded-md bg-red-50 text-red-700">
       <AlertTriangle className="w-3 h-3" />
-      Urgent
+      {t.badge_urgent}
     </span>
   );
 }
 
 function ForbiddenBadge() {
+  const t = UI[useLang()];
   return (
     <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-medium px-2 py-1 rounded-md bg-red-50 text-red-700">
       <Ban className="w-3 h-3" />
-      On ne le fait pas
+      {t.badge_forbidden}
     </span>
   );
 }
 
 function PricingGrid() {
+  const t = UI[useLang()];
   const tiers = [
     ["XXS", "< 1 cm²", "59 €"],
     ["XS", "< 5 cm²", "99 €"],
@@ -1579,14 +2951,14 @@ function PricingGrid() {
     ["6XL", "1551–2000 cm²", "999 €"],
     ["7XL", "2001–2500 cm²", "1 149 €"],
     ["8XL", "2501–3000 cm²", "1 299 €"],
-    ["Custom", "> 3000 cm²", "Sur devis"],
+    ["Custom", "> 3000 cm²", t.on_quote],
   ];
   return (
     <div className="mt-3 border border-stone-200 rounded-lg overflow-hidden">
       <div className="grid grid-cols-3 text-[10px] uppercase tracking-widest font-medium text-stone-500 bg-stone-50 px-3 py-2">
-        <span>Taille</span>
-        <span>Surface</span>
-        <span className="text-right">Par séance</span>
+        <span>{t.size}</span>
+        <span>{t.surface}</span>
+        <span className="text-right">{t.per_session}</span>
       </div>
       {tiers.map(([size, range, price], i) => (
         <div
@@ -1609,6 +2981,8 @@ function PricingGrid() {
 // ============================================================
 
 function ThemesMode() {
+  const t = UI[useLang()];
+  const lang = useLang();
   const [selectedTheme, setSelectedTheme] = useState(null);
   const [flippedId, setFlippedId] = useState(null);
   const [query, setQuery] = useState("");
@@ -1619,14 +2993,14 @@ function ThemesMode() {
     if (!q) return null;
     return ALL_QA.filter((item) => {
       const haystack = [
-        item.question,
-        item.short,
-        item.detail,
+        L(item,"question",lang),
+        L(item,"short",lang),
+        L(item,"detail",lang),
         ...(item.keywords || []),
       ].join(" ").toLowerCase();
       return haystack.includes(q);
     });
-  }, [query]);
+  }, [query, lang]);
 
   // Barre de recherche réutilisable
   const searchBar = (
@@ -1639,14 +3013,14 @@ function ThemesMode() {
           setQuery(e.target.value);
           if (e.target.value) setSelectedTheme(null);
         }}
-        placeholder="Rechercher : cloque, soleil, prix, vaseline…"
+        placeholder={t.search_ph}
         className="w-full pl-12 pr-12 py-4 bg-white border border-stone-200 rounded-xl text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-stone-400 text-base"
       />
       {query && (
         <button
           onClick={() => setQuery("")}
           className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-stone-100 rounded-lg"
-          aria-label="Effacer"
+          aria-label={t.clear}
         >
           <X className="w-4 h-4 text-stone-500" />
         </button>
@@ -1660,14 +3034,14 @@ function ThemesMode() {
       <div className="max-w-3xl mx-auto px-6 pb-24">
         <div className="mt-4">{searchBar}</div>
         <div className="text-xs text-stone-500 mt-2 pl-1">
-          {searchResults.length} {searchResults.length > 1 ? "réponses" : "réponse"}
+          {searchResults.length} {searchResults.length > 1 ? t.answers : t.answer}
         </div>
 
         <div className="mt-4 space-y-2">
           {searchResults.length === 0 && (
             <div className="text-center py-16 text-stone-500">
-              <p className="text-sm">Aucune réponse pour « {query} ».</p>
-              <p className="text-xs mt-2">Essayez un mot plus court ou un synonyme.</p>
+              <p className="text-sm">{t.no_answer_1a}{query}{t.no_answer_1b}</p>
+              <p className="text-xs mt-2">{t.no_answer_2}</p>
             </div>
           )}
           {searchResults.map((item) => {
@@ -1690,7 +3064,7 @@ function ThemesMode() {
                         {item.forbidden && <ForbiddenBadge />}
                       </div>
                       <div className="font-medium text-stone-900 mt-1.5">
-                        {item.question}
+                        {L(item,"question",lang)}
                       </div>
                     </div>
                     <ChevronRight
@@ -1704,15 +3078,15 @@ function ThemesMode() {
                   <div className="px-5 pb-5 border-t border-stone-100">
                     <div className="pt-4">
                       <div className="text-stone-800 leading-relaxed">
-                        {item.short}
+                        {L(item,"short",lang)}
                       </div>
                     </div>
                     <div className="mt-5 pt-5 border-t border-dashed border-stone-200">
                       <div className="text-[10px] uppercase tracking-widest text-stone-400 font-medium mb-2">
-                        Pour aller plus loin
+                        {t.go_further}
                       </div>
                       <div className="text-sm text-stone-600 leading-relaxed">
-                        {item.detail}
+                        {L(item,"detail",lang)}
                       </div>
                     </div>
                     {item.hasGrid && <PricingGrid />}
@@ -1743,10 +3117,10 @@ function ThemesMode() {
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="font-medium text-stone-900 text-lg">
-                      {theme.label}
+                      {L(theme, "label", lang)}
                     </div>
                     <div className="text-sm text-stone-500 mt-0.5">
-                      {theme.hint}
+                      {L(theme, "hint", lang)}
                     </div>
                   </div>
                   <div className="text-xs text-stone-400 font-mono">
@@ -1754,7 +3128,7 @@ function ThemesMode() {
                   </div>
                 </div>
                 <div className="mt-6 flex items-center gap-2 text-sm" style={{ color: RAY_ORANGE }}>
-                  <span>Ouvrir</span>
+                  <span>{t.open}</span>
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </div>
               </button>
@@ -1783,12 +3157,12 @@ function ThemesMode() {
           Tous les thèmes
         </button>
         <div className="text-xs text-stone-500 font-mono">
-          {cards.length} carte{cards.length > 1 ? "s" : ""}
+          {cards.length} {cards.length > 1 ? t.cards : t.card}
         </div>
       </div>
-      <h2 className="text-2xl font-semibold text-stone-900 mb-1">{theme.label}</h2>
+      <h2 className="text-2xl font-semibold text-stone-900 mb-1">{L(theme, "label", lang)}</h2>
       <p className="text-sm text-stone-500 mb-6">
-        Touchez une carte pour révéler la réponse.
+        {t.touch_reveal}
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1812,21 +3186,21 @@ function ThemesMode() {
                     {card.forbidden && <ForbiddenBadge />}
                   </div>
                   <div className="font-medium text-lg mt-2 flex-1">
-                    {card.question}
+                    {L(card,"question",lang)}
                   </div>
                   <div className="flex items-center gap-2 text-xs text-stone-500 mt-4">
                     <RotateCcw className="w-3.5 h-3.5" />
-                    Voir la réponse
+                    {t.see_answer}
                   </div>
                 </div>
               ) : (
                 <div className="h-full flex flex-col">
                   <div className="leading-relaxed flex-1">
-                    {card.short}
+                    {L(card,"short",lang)}
                   </div>
                   <div className="flex items-center gap-2 text-xs text-stone-400 mt-4">
                     <RotateCcw className="w-3.5 h-3.5" />
-                    Retourner
+                    {t.flip_back}
                   </div>
                 </div>
               )}
@@ -1843,6 +3217,8 @@ function ThemesMode() {
 // ============================================================
 
 function TrainingMode() {
+  const t = UI[useLang()];
+  const lang = useLang();
   const [quizType, setQuizType] = useState(null); // null = écran de choix
   const [index, setIndex] = useState(0);
   const [chosen, setChosen] = useState(null);
@@ -1886,8 +3262,8 @@ function TrainingMode() {
     return (
       <div className="max-w-2xl mx-auto px-6 pb-24">
         <div className="mt-4 mb-6">
-          <h2 className="text-2xl font-semibold text-stone-900 mb-1">Quiz</h2>
-          <p className="text-sm text-stone-500">Choisissez le type d'entraînement.</p>
+          <h2 className="text-2xl font-semibold text-stone-900 mb-1">{t.quiz_title}</h2>
+          <p className="text-sm text-stone-500">{t.choose_type}</p>
         </div>
         <div className="space-y-3">
           <button
@@ -1896,8 +3272,8 @@ function TrainingMode() {
           >
             <div className="flex items-start justify-between">
               <div>
-                <div className="font-medium text-stone-900 text-lg">Situations terrain</div>
-                <div className="text-sm text-stone-500 mt-0.5">Que répondre face à un patient ? {SCENARIOS.length} mises en situation.</div>
+                <div className="font-medium text-stone-900 text-lg">{t.scenarios_title}</div>
+                <div className="text-sm text-stone-500 mt-0.5">{t.scenarios_desc_a}{SCENARIOS.length}{t.scenarios_desc_b}</div>
               </div>
               <ArrowRight className="w-5 h-5 mt-1 transition-transform group-hover:translate-x-1" style={{ color: RAY_ORANGE }} />
             </div>
@@ -1908,8 +3284,8 @@ function TrainingMode() {
           >
             <div className="flex items-start justify-between">
               <div>
-                <div className="font-medium text-stone-900 text-lg">Connaissances médicales</div>
-                <div className="text-sm text-stone-500 mt-0.5">Le laser, les phototypes, les soins. {MEDICAL_QUIZ.length} questions de connaissances.</div>
+                <div className="font-medium text-stone-900 text-lg">{t.medical_title}</div>
+                <div className="text-sm text-stone-500 mt-0.5">{t.medical_desc_a}{MEDICAL_QUIZ.length}{t.medical_desc_b}</div>
               </div>
               <ArrowRight className="w-5 h-5 mt-1 transition-transform group-hover:translate-x-1" style={{ color: RAY_ORANGE }} />
             </div>
@@ -1929,12 +3305,12 @@ function TrainingMode() {
           {score}<span className="text-stone-300">/{deck.length}</span>
         </div>
         <div className="text-stone-500 text-sm uppercase tracking-widest mb-8">
-          {pct} % de bonnes réponses
+          {pct}{t.pct_correct}
         </div>
         <p className="text-stone-700 mb-10 max-w-md mx-auto">
-          {pct === 100 && "Sans-faute. Vous maîtrisez le sujet."}
-          {pct >= 70 && pct < 100 && "Très bien. Repassez les questions où vous avez hésité."}
-          {pct < 70 && "À retravailler. Un tour dans Comprendre et Thèmes aide à consolider."}
+          {pct === 100 && t.res_100}
+          {pct >= 70 && pct < 100 && t.res_70}
+          {pct < 70 && t.res_low}
         </p>
         <div className="flex items-center justify-center gap-3">
           <button
@@ -1943,13 +3319,13 @@ function TrainingMode() {
             style={{ backgroundColor: "#1A1A1A" }}
           >
             <RotateCcw className="w-4 h-4" />
-            Recommencer
+            {t.restart}
           </button>
           <button
             onClick={backToChoice}
             className="inline-flex items-center gap-2 text-stone-600 px-5 py-3 rounded-lg hover:bg-stone-100 transition-colors"
           >
-            Changer de quiz
+            {t.change_quiz}
           </button>
         </div>
       </div>
@@ -1957,7 +3333,7 @@ function TrainingMode() {
   }
 
   const isScenario = quizType === "scenario";
-  const promptLabel = isScenario ? "Situation" : "Question";
+  const promptLabel = isScenario ? t.label_situation : t.label_question;
 
   return (
     <div className="max-w-2xl mx-auto px-6 pb-24">
@@ -1967,13 +3343,13 @@ function TrainingMode() {
           className="text-sm text-stone-600 hover:text-stone-900 flex items-center gap-1.5 mb-4"
         >
           <ChevronRight className="w-4 h-4 rotate-180" />
-          {isScenario ? "Situations terrain" : "Connaissances médicales"}
+          {isScenario ? t.scenarios_title : t.medical_title}
         </button>
         <div className="flex items-center justify-between text-xs text-stone-500 mb-2">
           <span className="font-mono">
             {String(index + 1).padStart(2, "0")} / {String(deck.length).padStart(2, "0")}
           </span>
-          <span>Score : {score}</span>
+          <span>{t.score}{score}</span>
         </div>
         <div className="h-0.5 bg-stone-200 rounded-full overflow-hidden">
           <div
@@ -1991,12 +3367,12 @@ function TrainingMode() {
           {promptLabel}
         </div>
         <p className="text-lg text-stone-900 leading-relaxed">
-          {isScenario ? current.situation : current.question}
+          {isScenario ? L(current,"situation",lang) : L(current,"question",lang)}
         </p>
       </div>
 
       <div className="text-[10px] uppercase tracking-widest text-stone-400 font-medium mb-3 px-1">
-        {isScenario ? "Que répondez-vous ?" : "Quelle est la bonne réponse ?"}
+        {isScenario ? t.what_answer : t.which_correct}
       </div>
 
       <div className="space-y-2">
@@ -2037,10 +3413,10 @@ function TrainingMode() {
                   {showResult && isChosen && !isCorrect && <X className="w-3 h-3 text-white" strokeWidth={3} />}
                 </div>
                 <div className="flex-1">
-                  <div className="text-stone-900">{opt.text}</div>
+                  <div className="text-stone-900">{L(opt,"text",lang)}</div>
                   {showResult && (
                     <div className={`text-sm mt-2 ${isCorrect ? "text-emerald-700" : "text-stone-600"}`}>
-                      {opt.why}
+                      {L(opt,"why",lang)}
                     </div>
                   )}
                 </div>
@@ -2056,7 +3432,7 @@ function TrainingMode() {
           className="mt-6 w-full text-white py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
           style={{ backgroundColor: "#1A1A1A" }}
         >
-          {index < deck.length - 1 ? "Question suivante" : "Voir le résultat"}
+          {index < deck.length - 1 ? t.next_question : t.see_result}
           <ArrowRight className="w-4 h-4" />
         </button>
       )}
@@ -2065,7 +3441,7 @@ function TrainingMode() {
 }
 
 // ============================================================
-// MODE : CALCUL DE TATOUAGE
+// MODE : CALCUL DE TATOUAGE (France uniquement)
 // ============================================================
 
 function CalcMode() {
@@ -2101,16 +3477,16 @@ function CalcMode() {
   ];
 
   const surface = useMemo(() => {
-    const L = parseFloat(longueur);
-    const l = parseFloat(largeur);
-    if (isNaN(L) || isNaN(l) || L <= 0 || l <= 0) return null;
-    return L * l;
+    const Lg = parseFloat(longueur);
+    const la = parseFloat(largeur);
+    if (isNaN(Lg) || isNaN(la) || Lg <= 0 || la <= 0) return null;
+    return Lg * la;
   }, [longueur, largeur]);
 
   const result = useMemo(() => {
     if (!surface) return null;
     const grille = isCirconf ? grilleCirconf : grilleStandard;
-    const tier = grille.find((t) => surface <= t.max);
+    const tier = grille.find((x) => surface <= x.max);
     return tier || { label: "Custom", price: "Sur devis", isCustom: true };
   }, [surface, isCirconf]);
 
@@ -2245,10 +3621,110 @@ function CalcMode() {
 }
 
 // ============================================================
+// MODE : PRIX (page tarifs, marché espagnol)
+// ============================================================
+
+// Données de tarifs. Prix mensuel = 18 mensualités TAEG 0%.
+const PRICING = [
+  { size: "XS",  range: "1 a 5 cm²",   old: 45,  month: "37,54" },
+  { size: "S",   range: "5 a 15 cm²",  old: 67,  month: "56,43" },
+  { size: "M",   range: "15 a 50 cm²", old: 89,  month: "75,32" },
+  { size: "L",   range: "50 a 100 cm²", old: 111, month: "94,21" },
+  { size: "XL",  range: "100 a 250 cm²", old: 134, month: "113,10" },
+];
+const PRICING_EXTRA = [
+  { name: "Talla superior", range: "Más de 250 cm²", afterConsult: true },
+  { name: "Cejas completas", range: "Toda la ceja", month: "27,78" },
+  { name: "Cejas parciales", range: "Inicio o final de la ceja", month: "16,67" },
+];
+const PRICING_CTA_URL = "https://www.ray-studios.com/es/pedir-cita?utm_source=bing&utm_medium=organic&utm_campaign=%28not+set%29";
+
+function PricesMode() {
+  const t = UI[useLang()];
+
+  return (
+    <div className="max-w-3xl mx-auto px-6 pb-24">
+      {/* Bandeau d'offre */}
+      <div className="mt-4 mb-5 rounded-xl p-6 text-white" style={{ backgroundColor: "#1A1A1A" }}>
+        <div className="text-xl font-semibold">{t.prices_hero_title}</div>
+        <div className="text-sm mt-1.5 text-stone-300">{t.prices_hero_sub}</div>
+        <a
+          href={PRICING_CTA_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium"
+          style={{ backgroundColor: RAY_ORANGE, color: "#1A1A1A" }}
+        >
+          {t.prices_cta}
+          <ArrowRight className="w-4 h-4" />
+        </a>
+      </div>
+
+      {/* Grille des tailles */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {PRICING.map((p, i) => (
+          <div key={i} className="bg-white border border-stone-200 rounded-xl p-5">
+            <div className="flex items-baseline justify-between">
+              <div className="text-lg font-semibold text-stone-900">Talla {p.size}</div>
+              <div className="text-xs text-stone-500">{p.range}</div>
+            </div>
+            <div className="mt-4 flex items-baseline gap-2">
+              <span className="text-stone-400 line-through text-sm">{p.old} €</span>
+              <span className="text-3xl font-semibold" style={{ color: "#8B4513" }}>{p.month}</span>
+              <span className="text-lg" style={{ color: "#8B4513" }}>€</span>
+              <span className="text-sm text-stone-500">{t.prices_per_month}</span>
+            </div>
+            <div className="mt-2 text-[11px] uppercase tracking-widest text-stone-400 font-medium">
+              {t.prices_installments}
+            </div>
+          </div>
+        ))}
+
+        {/* Taille supérieure : sur consultation */}
+        <div className="bg-white border border-stone-200 rounded-xl p-5">
+          <div className="flex items-baseline justify-between">
+            <div className="text-lg font-semibold text-stone-900">Talla superior</div>
+            <div className="text-xs text-stone-500">Más de 250 cm²</div>
+          </div>
+          <div className="mt-4 text-base text-stone-700">{t.prices_after_consult}</div>
+        </div>
+      </div>
+
+      {/* Sourcils */}
+      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {PRICING_EXTRA.filter((e) => e.month).map((e, i) => (
+          <div key={i} className="bg-white border border-stone-200 rounded-xl p-5">
+            <div className="flex items-baseline justify-between">
+              <div className="text-lg font-semibold text-stone-900">{e.name}</div>
+              <div className="text-xs text-stone-500">{e.range}</div>
+            </div>
+            <div className="mt-4 flex items-baseline gap-2">
+              <span className="text-3xl font-semibold" style={{ color: "#8B4513" }}>{e.month}</span>
+              <span className="text-lg" style={{ color: "#8B4513" }}>€</span>
+              <span className="text-sm text-stone-500">{t.prices_per_month}</span>
+            </div>
+            <div className="mt-2 text-[11px] uppercase tracking-widest text-stone-400 font-medium">
+              {t.prices_installments}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Mention légale */}
+      <div className="mt-6 text-xs text-stone-400 px-1 leading-relaxed">
+        {t.prices_note_label}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // MODE : COMPRENDRE (vulgarisation médicale)
 // ============================================================
 
 function LearnMode() {
+  const t = UI[useLang()];
+  const lang = useLang();
   const [topic, setTopic] = useState("how-laser-works");
   const current = EDUCATION.find((e) => e.id === topic);
 
@@ -2268,7 +3744,7 @@ function LearnMode() {
                 }`}
                 style={isActive ? { backgroundColor: "#1A1A1A" } : {}}
               >
-                {e.title}
+                {L(e,"title",lang)}
               </button>
             );
           })}
@@ -2277,8 +3753,8 @@ function LearnMode() {
 
       {/* En-tête du sujet */}
       <div className="mt-6 mb-8">
-        <h2 className="text-2xl font-semibold text-stone-900 mb-3">{current.title}</h2>
-        <p className="text-stone-700 leading-relaxed">{current.intro}</p>
+        <h2 className="text-2xl font-semibold text-stone-900 mb-3">{L(current,"title",lang)}</h2>
+        <p className="text-stone-700 leading-relaxed">{L(current,"intro",lang)}</p>
       </div>
 
       {/* Sections du sujet */}
@@ -2286,7 +3762,7 @@ function LearnMode() {
         {current.sections.map((sec, i) => (
           <section key={i}>
             <h3 className="text-[10px] uppercase tracking-widest text-stone-400 font-medium mb-3">
-              {sec.title}
+              {L(sec,"title",lang)}
             </h3>
 
             {/* Liste à étapes numérotées */}
@@ -2298,7 +3774,7 @@ function LearnMode() {
                       {it.label}
                     </div>
                     <div className="text-stone-800 leading-relaxed pt-1">
-                      <span className="font-medium">{it.strong}</span> {it.text}
+                      <span className="font-medium">{L(it,"strong",lang)}</span> {L(it,"text",lang)}
                     </div>
                   </div>
                 ))}
@@ -2308,11 +3784,11 @@ function LearnMode() {
             {/* Paragraphe texte */}
             {sec.text && (
               <div className="bg-white border border-stone-200 rounded-xl p-5">
-                <p className="text-stone-800 leading-relaxed">{sec.text}</p>
+                <p className="text-stone-800 leading-relaxed">{L(sec,"text",lang)}</p>
                 {/* Risques associés au texte */}
                 {sec.risks && (
                   <ul className="mt-4 space-y-2">
-                    {sec.risks.map((r, j) => (
+                    {L(sec,"risks",lang).map((r, j) => (
                       <li key={j} className="flex items-start gap-2 text-sm text-stone-700">
                         <span className="flex-shrink-0 w-1 h-1 rounded-full mt-2" style={{ backgroundColor: "#DC2626" }} />
                         <span>{r}</span>
@@ -2334,7 +3810,7 @@ function LearnMode() {
                 />
                 {sec.image.caption && (
                   <figcaption className="px-5 py-3 text-xs text-stone-500 border-t border-stone-100 leading-relaxed">
-                    {sec.image.caption}
+                    {L(sec.image,"caption",lang)}
                   </figcaption>
                 )}
               </figure>
@@ -2350,8 +3826,8 @@ function LearnMode() {
                       style={{ backgroundColor: RAY_ORANGE }}
                     />
                     <div>
-                      <div className="font-medium text-stone-900">{p.name}</div>
-                      <p className="text-sm text-stone-700 leading-relaxed mt-1">{p.desc}</p>
+                      <div className="font-medium text-stone-900">{L(p,"name",lang)}</div>
+                      <p className="text-sm text-stone-700 leading-relaxed mt-1">{L(p,"desc",lang)}</p>
                     </div>
                   </div>
                 ))}
@@ -2373,8 +3849,8 @@ function LearnMode() {
                       </div>
                     </div>
                     <div className="mt-3 text-sm">
-                      <div className="text-stone-800">{w.inks}</div>
-                      <div className="text-xs text-stone-500 mt-1 font-mono">Phototypes {w.phototypes}</div>
+                      <div className="text-stone-800">{L(w,"inks",lang)}</div>
+                      <div className="text-xs text-stone-500 mt-1 font-mono">{t.phototypes_lbl} {L(w,"phototypes",lang)}</div>
                     </div>
                   </div>
                 ))}
@@ -2393,7 +3869,7 @@ function LearnMode() {
                       {p.roman}
                     </div>
                     <div className="text-sm text-stone-700 leading-relaxed">
-                      {p.desc}
+                      {L(p,"desc",lang)}
                     </div>
                   </div>
                 ))}
@@ -2440,13 +3916,13 @@ function LearnMode() {
                 {sec.pillars.map((p, j) => (
                   <div key={j} className="bg-white border border-stone-200 rounded-xl p-5">
                     <div className="flex items-baseline justify-between gap-2">
-                      <div className="text-lg font-semibold text-stone-900">{p.name}</div>
+                      <div className="text-lg font-semibold text-stone-900">{L(p,"name",lang)}</div>
                       <div className="font-mono text-xs px-2 py-1 rounded-md" style={{ backgroundColor: RAY_ORANGE_SOFT, color: "#8B4513" }}>
                         {p.unit}
                       </div>
                     </div>
-                    <div className="text-sm text-stone-500 italic mt-1">{p.what}</div>
-                    <p className="text-sm text-stone-700 leading-relaxed mt-3">{p.explain}</p>
+                    <div className="text-sm text-stone-500 italic mt-1">{L(p,"what",lang)}</div>
+                    <p className="text-sm text-stone-700 leading-relaxed mt-3">{L(p,"explain",lang)}</p>
                   </div>
                 ))}
               </div>
@@ -2459,15 +3935,15 @@ function LearnMode() {
                   <div key={j} className="bg-white border border-stone-200 rounded-xl overflow-hidden">
                     <div className="px-5 py-4 border-l-4" style={{ borderLeftColor: "#DC2626" }}>
                       <div className="text-[10px] uppercase tracking-widest font-medium text-red-700 mb-1">
-                        Idée reçue
+                        {t.myth_label}
                       </div>
-                      <div className="text-stone-900 font-medium italic">{m.myth}</div>
+                      <div className="text-stone-900 font-medium italic">{L(m,"myth",lang)}</div>
                     </div>
                     <div className="px-5 py-4 border-t border-stone-100" style={{ backgroundColor: RAY_ORANGE_SOFT }}>
                       <div className="text-[10px] uppercase tracking-widest font-medium mb-1" style={{ color: "#8B4513" }}>
-                        La réalité
+                        {t.reality_label}
                       </div>
-                      <div className="text-stone-800 leading-relaxed text-sm">{m.truth}</div>
+                      <div className="text-stone-800 leading-relaxed text-sm">{L(m,"truth",lang)}</div>
                     </div>
                   </div>
                 ))}
@@ -2478,7 +3954,7 @@ function LearnMode() {
             {sec.bullets && (
               <div className="bg-white border border-stone-200 rounded-xl p-5">
                 <ul className="space-y-3">
-                  {sec.bullets.map((b, j) => (
+                  {L(sec,"bullets",lang).map((b, j) => (
                     <li key={j} className="flex items-start gap-3 text-stone-800 leading-relaxed">
                       <span
                         className="flex-shrink-0 w-1.5 h-1.5 rounded-full mt-2.5"
@@ -2502,6 +3978,8 @@ function LearnMode() {
 // ============================================================
 
 function ReflexesMode() {
+  const t = UI[useLang()];
+  const lang = useLang();
   const [subMode, setSubMode] = useState("phrases");
   const [glossQuery, setGlossQuery] = useState("");
 
@@ -2509,9 +3987,9 @@ function ReflexesMode() {
     const q = glossQuery.trim().toLowerCase();
     if (!q) return GLOSSARY;
     return GLOSSARY.filter((g) =>
-      (g.term + " " + g.techDef + " " + (g.mechanism || "") + " " + g.patientWords).toLowerCase().includes(q)
+      (L(g,"term",lang) + " " + L(g,"techDef",lang) + " " + (L(g,"mechanism",lang) || "") + " " + L(g,"patientWords",lang)).toLowerCase().includes(q)
     );
-  }, [glossQuery]);
+  }, [glossQuery, lang]);
 
   return (
     <div className="max-w-3xl mx-auto px-6 pb-24">
@@ -2525,7 +4003,7 @@ function ReflexesMode() {
             style={subMode === "phrases" ? { backgroundColor: "#1A1A1A" } : {}}
           >
             <AlertOctagon className="w-4 h-4" />
-            À ne jamais dire
+            {t.sub_phrases}
           </button>
           <button
             onClick={() => setSubMode("glossary")}
@@ -2535,7 +4013,7 @@ function ReflexesMode() {
             style={subMode === "glossary" ? { backgroundColor: "#1A1A1A" } : {}}
           >
             <Quote className="w-4 h-4" />
-            Glossaire
+            {t.sub_glossary}
           </button>
         </div>
       </div>
@@ -2543,23 +4021,23 @@ function ReflexesMode() {
       {subMode === "phrases" && (
         <div>
           <p className="text-sm text-stone-500 mb-6 px-1">
-            Les phrases qui peuvent mettre le SM (et Ray studios) en porte-à-faux, avec la reformulation correcte.
+            {t.phrases_intro}
           </p>
           <div className="space-y-3">
             {FORBIDDEN_PHRASES.map((p, i) => (
               <div key={i} className="bg-white border border-stone-200 rounded-xl overflow-hidden">
                 <div className="px-5 py-4 border-l-4" style={{ borderLeftColor: "#DC2626" }}>
                   <div className="text-[10px] uppercase tracking-widest font-medium text-red-700 mb-1">
-                    À ne pas dire
+                    {t.not_say}
                   </div>
-                  <div className="text-stone-900 font-medium italic">« {p.bad} »</div>
-                  <div className="text-sm text-stone-600 mt-2">{p.why}</div>
+                  <div className="text-stone-900 font-medium italic">« {L(p,"bad",lang)} »</div>
+                  <div className="text-sm text-stone-600 mt-2">{L(p,"why",lang)}</div>
                 </div>
                 <div className="px-5 py-4 border-t border-stone-100" style={{ backgroundColor: RAY_ORANGE_SOFT }}>
                   <div className="text-[10px] uppercase tracking-widest font-medium mb-1" style={{ color: "#8B4513" }}>
-                    À dire à la place
+                    {t.say_instead}
                   </div>
-                  <div className="text-stone-900">« {p.good} »</div>
+                  <div className="text-stone-900">« {L(p,"good",lang)} »</div>
                 </div>
               </div>
             ))}
@@ -2575,39 +4053,39 @@ function ReflexesMode() {
               type="text"
               value={glossQuery}
               onChange={(e) => setGlossQuery(e.target.value)}
-              placeholder="Chercher un terme : fluence, érythème, RTP…"
+              placeholder={t.glossary_ph}
               className="w-full pl-11 pr-4 py-3 bg-white border border-stone-200 rounded-xl text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-stone-400 text-sm"
             />
           </div>
           <div className="space-y-2">
             {filteredGlossary.map((g) => (
               <div key={g.term} className="bg-white border border-stone-200 rounded-xl p-5">
-                <div className="font-semibold text-stone-900">{g.term}</div>
+                <div className="font-semibold text-stone-900">{L(g, "term", lang)}</div>
                 <div className="mt-3">
                   <div className="text-[10px] uppercase tracking-widest text-stone-400 font-medium mb-1">
-                    Définition
+                    {t.definition}
                   </div>
-                  <div className="text-sm text-stone-700 leading-relaxed">{g.techDef}</div>
+                  <div className="text-sm text-stone-700 leading-relaxed">{L(g, "techDef", lang)}</div>
                 </div>
-                {g.mechanism && (
+                {L(g, "mechanism", lang) && (
                   <div className="mt-3 pt-3 border-t border-dashed border-stone-200">
                     <div className="text-[10px] uppercase tracking-widest text-stone-400 font-medium mb-1">
-                      Comment ça arrive
+                      {t.how_happens}
                     </div>
-                    <div className="text-sm text-stone-600 leading-relaxed">{g.mechanism}</div>
+                    <div className="text-sm text-stone-600 leading-relaxed">{L(g, "mechanism", lang)}</div>
                   </div>
                 )}
                 <div className="mt-3 pt-3 border-t border-dashed border-stone-200">
                   <div className="text-[10px] uppercase tracking-widest font-medium mb-1" style={{ color: "#8B4513" }}>
-                    À dire au patient
+                    {t.say_patient}
                   </div>
-                  <div className="text-sm text-stone-800 leading-relaxed">{g.patientWords}</div>
+                  <div className="text-sm text-stone-800 leading-relaxed">{L(g, "patientWords", lang)}</div>
                 </div>
               </div>
             ))}
             {filteredGlossary.length === 0 && (
               <div className="text-center py-12 text-stone-500 text-sm">
-                Aucun terme trouvé pour « {glossQuery} ».
+                {t.no_term_a}{glossQuery}{t.no_term_b}
               </div>
             )}
           </div>
@@ -2622,6 +4100,7 @@ function ReflexesMode() {
 // ============================================================
 
 function FeedbackMode() {
+  const t = UI[useLang()];
   const [name, setName] = useState("");
   const [question, setQuestion] = useState("");
   const [status, setStatus] = useState("idle"); // idle | sending | sent | error
@@ -2660,16 +4139,16 @@ function FeedbackMode() {
   return (
     <div className="max-w-2xl mx-auto px-6 pb-24">
       <div className="mt-4 mb-6">
-        <h2 className="text-2xl font-semibold text-stone-900 mb-1">Feedback</h2>
+        <h2 className="text-2xl font-semibold text-stone-900 mb-1">{t.fb_title}</h2>
         <p className="text-sm text-stone-500">
-          Une question, un doute, une suggestion ? Posez-la ici, elle sera transmise à l'équipe.
+          {t.fb_sub}
         </p>
       </div>
 
       {!configured ? (
         <div className="border-l-2 rounded-r p-5 bg-white border border-stone-200" style={{ borderLeftColor: RAY_ORANGE, borderLeftWidth: "3px" }}>
           <div className="text-sm text-stone-700 leading-relaxed">
-            Le formulaire n'est pas encore activé. La configuration finale est en cours.
+            {t.fb_not_ready}
           </div>
         </div>
       ) : status === "sent" ? (
@@ -2680,39 +4159,39 @@ function FeedbackMode() {
           >
             <Check className="w-6 h-6" style={{ color: "#8B4513" }} strokeWidth={2.5} />
           </div>
-          <div className="font-medium text-stone-900 mb-1">Question transmise</div>
+          <div className="font-medium text-stone-900 mb-1">{t.fb_sent_title}</div>
           <p className="text-sm text-stone-500 mb-6">
-            Merci, votre question a bien été envoyée à l'équipe.
+            {t.fb_sent_body}
           </p>
           <button
             onClick={() => setStatus("idle")}
             className="inline-flex items-center gap-2 text-stone-600 px-5 py-2.5 rounded-lg hover:bg-stone-100 transition-colors text-sm"
           >
-            Poser une autre question
+            {t.fb_another}
           </button>
         </div>
       ) : (
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1.5">
-              Votre nom <span className="text-stone-400 font-normal">(optionnel)</span>
+              {t.fb_name} <span className="text-stone-400 font-normal">{t.fb_optional}</span>
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Prénom ou nom"
+              placeholder={t.fb_name_ph}
               className="w-full px-4 py-3 bg-white border border-stone-200 rounded-xl text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-stone-400"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1.5">
-              Votre question
+              {t.fb_question}
             </label>
             <textarea
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Écrivez votre question ici…"
+              placeholder={t.fb_question_ph}
               rows={5}
               className="w-full px-4 py-3 bg-white border border-stone-200 rounded-xl text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-stone-400 resize-none"
             />
@@ -2720,7 +4199,7 @@ function FeedbackMode() {
 
           {status === "error" && (
             <div className="text-sm text-red-600">
-              L'envoi a échoué. Vérifiez votre connexion et réessayez.
+              {t.fb_error}
             </div>
           )}
 
@@ -2730,12 +4209,12 @@ function FeedbackMode() {
             className="w-full text-white py-4 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-40"
             style={{ backgroundColor: "#1A1A1A" }}
           >
-            {status === "sending" ? "Envoi en cours…" : "Envoyer ma question"}
+            {status === "sending" ? t.fb_sending : t.fb_send}
             {status !== "sending" && <ArrowRight className="w-4 h-4" />}
           </button>
 
           <p className="text-xs text-stone-400 text-center">
-            Vos questions aident à améliorer l'outil et la formation.
+            {t.fb_help}
           </p>
         </div>
       )}
@@ -2749,17 +4228,20 @@ function FeedbackMode() {
 
 export default function App() {
   const [mode, setMode] = useState("themes");
+  const [lang, setLang] = useState("fr");
+  const t = UI[lang];
 
   const tabs = [
-    { id: "learn",    label: "Comprendre", icon: Atom },
-    { id: "themes",   label: "Thèmes",     icon: BookOpen },
-    { id: "reflex",   label: "Réflexes",   icon: Lightbulb },
-    { id: "training", label: "Quiz",       icon: Target },
-    { id: "calc",     label: "Calcul",     icon: Calculator },
+    { id: "learn",    label: t.tab_learn,    icon: Atom },
+    { id: "themes",   label: t.tab_themes,   icon: BookOpen },
+    { id: "reflex",   label: t.tab_reflex,   icon: Lightbulb },
+    { id: "training", label: t.tab_training, icon: Target },
+    ...(lang !== "en" ? [{ id: "pricecalc", label: lang === "fr" ? "Calcul" : t.tab_prices, icon: Calculator }] : []),
   ];
 
 
   return (
+   <LangContext.Provider value={lang}>
     <div
       className="min-h-screen"
       style={{
@@ -2774,11 +4256,29 @@ export default function App() {
       >
         <div className="max-w-4xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <RayMark size={36} />
-            <div>
-              <RayWordmark height={18} />
-              <div className="text-[10px] uppercase tracking-widest text-stone-500 mt-1">
-                Guide médical du SM
+            {/* Sélecteur de langue */}
+            <div className="flex items-center rounded-lg border border-stone-200 overflow-hidden flex-shrink-0">
+              {LANGS.map((l) => (
+                <button
+                  key={l.id}
+                  onClick={() => setLang(l.id)}
+                  title={l.label}
+                  className={`px-2 py-1.5 text-xs font-medium transition-colors ${
+                    lang === l.id ? "text-white" : "text-stone-500 hover:bg-stone-100"
+                  }`}
+                  style={lang === l.id ? { backgroundColor: "#1A1A1A" } : {}}
+                >
+                  {l.flag}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-3">
+              <RayMark size={36} />
+              <div>
+                <RayWordmark height={18} />
+                <div className="text-[10px] uppercase tracking-widest text-stone-500 mt-1">
+                  {t.subtitle}
+                </div>
               </div>
             </div>
           </div>
@@ -2792,7 +4292,7 @@ export default function App() {
             style={mode === "feedback" ? { backgroundColor: "#1A1A1A" } : {}}
           >
             <MessageCircle className="w-4 h-4" />
-            <span className="hidden sm:inline">Feedback</span>
+            <span className="hidden sm:inline">{t.feedback}</span>
           </button>
         </div>
 
@@ -2829,16 +4329,19 @@ export default function App() {
         {mode === "themes"   && <ThemesMode />}
         {mode === "reflex"   && <ReflexesMode />}
         {mode === "training" && <TrainingMode />}
-        {mode === "calc"     && <CalcMode />}
+        {mode === "pricecalc" && lang === "fr" && <CalcMode />}
+        {mode === "pricecalc" && lang === "es" && <PricesMode />}
+        {mode === "pricecalc" && lang === "en" && <ThemesMode />}
         {mode === "feedback" && <FeedbackMode />}
       </main>
 
       {/* Pied de page */}
       <footer className="border-t border-stone-200 py-6 text-center">
         <div className="text-[10px] uppercase tracking-widest text-stone-400">
-          Ray studios · Outil interne. Ne remplace pas l'avis médical
+          {t.footer}
         </div>
       </footer>
     </div>
+   </LangContext.Provider>
   );
 }
